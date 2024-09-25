@@ -1,2 +1,2 @@
-# video_processing_utility
+# Video Processing Utility
 VPU - video processing utility
