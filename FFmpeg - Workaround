@@ -1,1 +1,14 @@
 # Trying to explore FFmpeg
+
+Operating System - "Ubuntu 22.04.3 LTS"
+
+Website:
+https://ffmpeg.org/
+
+Download link:
+https://ffmpeg.org/download.html
+
+Extract the tar file on the machine:
+
+tar -xvf ffmpeg-7.0.2.tar.xz
+
