@@ -1,14 +1,17 @@
 # FFmpeg Handbook
 
-Operating System - "Ubuntu 22.04.3 LTS"
-
 Website:
 https://ffmpeg.org/
 
-Download link:
-https://ffmpeg.org/download.html
+Operating System - "Ubuntu 22.04.3 LTS"
 
-Extract the tar file on the machine:
+## Installing FFmpeg
 
-tar -xvf ffmpeg-7.0.2.tar.xz
+Tutorial: https://www.youtube.com/watch?v=HWxcMo-MqGU
 
+Installation:
+yourpath$ sudo apt install ffmpeg
+
+Validating the installation:
+
+yourpath$ ffmpeg -version  
