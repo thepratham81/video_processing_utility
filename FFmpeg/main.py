@@ -1,40 +1,88 @@
-#!/usr/bin/python3
-
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.filechooser import FileChooser
+from kivy.uix.slider import Slider
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.popup import Popup
 import ffmpeg
 import os
 
 class MediaEditor(BoxLayout):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        
-        # File chooser
-        self.file_chooser = FileChooser()
+
+        # Label to show the selected file
+        self.file_label = Label(text='Drag and Drop a Media File', size_hint_y=0.1)
+        self.add_widget(self.file_label)
+
+        # File chooser area for drag-and-drop
+        self.file_chooser = FileChooserIconView(filters=["*.mp4", "*.avi", "*.mkv"])
+        self.file_chooser.bind(on_submit=self.on_file_drop)
         self.add_widget(self.file_chooser)
 
-        # Edit buttons
-        self.btn_layout = BoxLayout(size_hint_y=None, height='40dp')
-        self.trim_btn = Button(text='Trim Video')
-        self.trim_btn.bind(on_press=self.trim_video)
-        self.btn_layout.add_widget(self.trim_btn)
+        # Sliders for trimming
+        self.slider_layout = BoxLayout(orientation='horizontal', size_hint_y=0.2)
         
-        self.add_widget(self.btn_layout)
+        self.start_slider = Slider(min=0, max=100, value=0)
+        self.end_slider = Slider(min=0, max=100, value=100)
+        self.slider_layout.add_widget(Label(text='Start'))
+        self.slider_layout.add_widget(self.start_slider)
+        self.slider_layout.add_widget(Label(text='End'))
+        self.slider_layout.add_widget(self.end_slider)
+        
+        self.add_widget(self.slider_layout)
+
+        # Button to trim the video
+        self.trim_btn = Button(text='Trim Video', size_hint_y=0.1)
+        self.trim_btn.bind(on_press=self.trim_video)
+        self.add_widget(self.trim_btn)
+
+        # Variables to hold the selected file and the trimmed output path
+        self.input_file = None
+        self.output_file = None
+
+    def on_file_drop(self, filechooser, selected_files):
+        # When the user selects or drops a file, update the file label
+        self.input_file = selected_files[0]  # First file from the selection
+        self.file_label.text = f'Selected: {self.input_file}'
+        
+        # Dynamically update the slider range based on the video duration
+        self.update_slider_range(self.input_file)
+
+    def update_slider_range(self, file_path):
+        # Get the video duration using FFmpeg
+        probe = ffmpeg.probe(file_path)
+        duration = float(probe['format']['duration'])
+
+        # Update slider max values based on duration
+        self.start_slider.max = duration
+        self.end_slider.max = duration
 
     def trim_video(self, instance):
-        input_file = self.file_chooser.selection[0]
-        output_file = os.path.join(os.path.dirname(input_file), 'output_trim.mp4')
+        if not self.input_file:
+            popup = Popup(title='Error', content=Label(text="No file selected!"), size_hint=(0.5, 0.5))
+            popup.open()
+            return
 
-        # FFmpeg command for trimming video (0-30 seconds)
-        ffmpeg.input(input_file, ss=0, t=30).output(output_file).run()
+        # Get the start and end times from the sliders
+        start_time = self.start_slider.value
+        end_time = self.end_slider.value
 
-        self.add_widget(Label(text=f"Trimmed video saved at: {output_file}"))
+        if start_time >= end_time:
+            popup = Popup(title='Error', content=Label(text="Invalid trim range!"), size_hint=(0.5, 0.5))
+            popup.open()
+            return
 
+        # Set output file path
+        self.output_file = os.path.join(os.path.dirname(self.input_file), 'output_trim.mp4')
+
+        # Run FFmpeg to trim the video
+        ffmpeg.input(self.input_file, ss=start_time, to=end_time).output(self.output_file).run()
+
+        popup = Popup(title='Success', content=Label(text=f'Trimmed video saved at: {self.output_file}'), size_hint=(0.5, 0.5))
+        popup.open()
 
 class MediaEditorApp(App):
     def build(self):
