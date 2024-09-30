@@ -1,18 +1,17 @@
-# FFmpeg Handbook
+# FFmpeg Workaround Handbook
 
 Website:
 https://ffmpeg.org/
 
 Operating System - "Ubuntu 22.04.3 LTS"
 
-## Installing FFmpeg
+## Steps to develop the application
 
-Tutorial: https://www.youtube.com/watch?v=HWxcMo-MqGU
+1. Install Required Dependencies
 
-Installation:
-yourpath$ sudo apt install ffmpeg
+pip install kivy
+pip install ffmpeg-python
+pip install pyinstaller
 
-Validating the installation:
-
-yourpath$ ffmpeg -version  
+2. Create the Application UI with Kivy
 
