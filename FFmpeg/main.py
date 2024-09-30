@@ -18,8 +18,8 @@ class MediaEditor(BoxLayout):
         self.add_widget(self.file_label)
 
         # File chooser area for drag-and-drop
-        self.file_chooser = FileChooserIconView(filters=["*.mp4", "*.avi", "*.mkv"])
-        self.file_chooser.bind(on_submit=self.on_file_drop)
+        self.file_chooser = FileChooserIconView(filters=["*.mp4", "*.avi", "*.mkv"], multiselect=False)
+        self.file_chooser.bind(on_selection=self.on_file_select)
         self.add_widget(self.file_chooser)
 
         # Sliders for trimming
@@ -43,24 +43,38 @@ class MediaEditor(BoxLayout):
         self.input_file = None
         self.output_file = None
 
-    def on_file_drop(self, filechooser, selected_files):
-        # When the user selects or drops a file, update the file label
-        self.input_file = selected_files[0]  # First file from the selection
-        self.file_label.text = f'Selected: {self.input_file}'
-        
-        # Dynamically update the slider range based on the video duration
-        self.update_slider_range(self.input_file)
+    def on_file_select(self, filechooser, selected_files):
+        """
+        Handle the file selection or drag-and-drop event
+        """
+        if selected_files:  # Check if any files were selected
+            self.input_file = selected_files[0]  # Get the first selected file
+            self.file_label.text = f'Selected: {self.input_file}'
+            
+            # Dynamically update the slider range based on the video duration
+            self.update_slider_range(self.input_file)
+        else:
+            self.file_label.text = 'No file selected!'
 
     def update_slider_range(self, file_path):
-        # Get the video duration using FFmpeg
-        probe = ffmpeg.probe(file_path)
-        duration = float(probe['format']['duration'])
+        """
+        Update slider max values based on the video duration using FFmpeg probe
+        """
+        try:
+            probe = ffmpeg.probe(file_path)
+            duration = float(probe['format']['duration'])
 
-        # Update slider max values based on duration
-        self.start_slider.max = duration
-        self.end_slider.max = duration
+            # Update slider max values based on duration
+            self.start_slider.max = duration
+            self.end_slider.max = duration
+        except Exception as e:
+            popup = Popup(title='Error', content=Label(text=f'Error reading file: {str(e)}'), size_hint=(0.5, 0.5))
+            popup.open()
 
     def trim_video(self, instance):
+        """
+        Trim the selected video based on the slider values
+        """
         if not self.input_file:
             popup = Popup(title='Error', content=Label(text="No file selected!"), size_hint=(0.5, 0.5))
             popup.open()
@@ -78,11 +92,16 @@ class MediaEditor(BoxLayout):
         # Set output file path
         self.output_file = os.path.join(os.path.dirname(self.input_file), 'output_trim.mp4')
 
-        # Run FFmpeg to trim the video
-        ffmpeg.input(self.input_file, ss=start_time, to=end_time).output(self.output_file).run()
+        try:
+            # Run FFmpeg to trim the video
+            ffmpeg.input(self.input_file, ss=start_time, to=end_time).output(self.output_file).run()
 
-        popup = Popup(title='Success', content=Label(text=f'Trimmed video saved at: {self.output_file}'), size_hint=(0.5, 0.5))
-        popup.open()
+            popup = Popup(title='Success', content=Label(text=f'Trimmed video saved at: {self.output_file}'), size_hint=(0.5, 0.5))
+            popup.open()
+        except Exception as e:
+            popup = Popup(title='Error', content=Label(text=f'Error during trimming: {str(e)}'), size_hint=(0.5, 0.5))
+            popup.open()
+
 
 class MediaEditorApp(App):
     def build(self):
