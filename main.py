@@ -33,17 +33,14 @@ class MediaEditor(BoxLayout):
         selected = self.file_chooser.selection
         #print("SELECTED :", selected)
         if selected:
-            file_path = selected[0].strip()
-            #file_path = file_path.strip()  # Removes leading/trailing whitespace or newlines
+            file_path = selected[0].strip() # Removes leading/trailing whitespace or newlines
             print("The selected file path is:", file_path)
             # Example: Trim first 10 seconds of the video/audio
-            ##output_file = file_path.replace('.', '_edited.')
             # Get file name and extension separately
             base, ext = os.path.splitext(file_path)
             output_file = f"{base}_edited{ext}"
             print("Output file path is:", output_file)
             ffmpeg_command = f'"{FFMPEG_PATH}" -i "{file_path}" -t 10 -c copy "{output_file}"'
-            #ffmpeg_command = f'"{FFMPEG_PATH}" -version'
             try:
                 subprocess.run(ffmpeg_command, check=True, shell=True)
                 self.show_popup("Success", f"Edited file saved as {output_file}")
