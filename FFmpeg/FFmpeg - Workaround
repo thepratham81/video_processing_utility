@@ -3,15 +3,22 @@
 Website:
 https://ffmpeg.org/
 
-Operating System - "Ubuntu 22.04.3 LTS"
-
 ## Steps to develop the application
 
 1. Install Required Dependencies
 
 pip install kivy
-pip install ffmpeg-python
 pip install pyinstaller
 
-2. Create the Application UI with Kivy
+2. Download and install FFmpeg for Windows
+
+a. Go to the official FFmpeg website: https://ffmpeg.org/download.html.
+
+b. Under the "Get packages & executable files" section, find Windows.
+
+c. Click the link under "Windows builds from gyan.dev" (this is a reliable third-party source).
+
+d. On the new page, scroll down to the release builds section and download the latest version under the      “Essential Builds” category (e.g., ffmpeg-release-essentials.zip).
+
+3. Create the Application UI with Kivy
 
