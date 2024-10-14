@@ -58,6 +58,11 @@ class MediaEditor(BoxLayout):
         self.btn_aspect_ratio.bind(on_press=lambda x: self.edit_media("aspect_ratio"))
         self.btn_layout.add_widget(self.btn_aspect_ratio)
 
+        # Convert Stereo to Mono
+        self.btn_stereo_to_mono = Button(text="Stereo to Mono")
+        self.btn_stereo_to_mono.bind(on_press=lambda x: self.edit_media("stereo_to_mono"))
+        self.btn_layout.add_widget(self.btn_stereo_to_mono)
+
         self.add_widget(self.btn_layout)
 
     def edit_media(self, action):
@@ -93,6 +98,9 @@ class MediaEditor(BoxLayout):
         elif action == "aspect_ratio":
             # Change aspect ratio to 16:9 for example
             return f'"{FFMPEG_PATH}" -i "{file_path}" -vf "scale=1280:720" "{output_file}"'
+        elif action == "stereo_to_mono":
+            # Convert stereo audio to mono
+            return f'"{FFMPEG_PATH}" -i "{file_path}" -ac 1 "{output_file}"'
         return None
 
     def show_popup(self, title, message):
