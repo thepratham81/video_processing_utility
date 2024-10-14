@@ -11,7 +11,7 @@ from kivy.uix.popup import Popup
 
 # Get the current time
 current_time = datetime.now()
-formatted_time = current_time.strftime("%Y-%m-%d_%H-%M-%S")
+formatted_time = current_time.strftime("%Y-%m-%d_%H.%M.%S")
 
 # Path to FFmpeg binaries
 FFMPEG_PATH = os.path.join(os.getcwd(), 'ffmpeg', 'ffmpeg.exe')
@@ -90,7 +90,7 @@ class MediaEditor(BoxLayout):
         if action == "rotate_90":
             return f'"{FFMPEG_PATH}" -i "{file_path}" -vf "transpose=1" "{output_file}"'
         elif action == "rotate_180":
-            return f'"{FFMPEG_PATH}" -i "{file_path}" -vf "transpose=2,transpose=2" "{output_file}"'
+            return f'"{FFMPEG_PATH}" -i "{file_path}" -vf "transpose=2" "{output_file}"'
         elif action == "flip_h":
             return f'"{FFMPEG_PATH}" -i "{file_path}" -vf "hflip" "{output_file}"'
         elif action == "flip_v":
