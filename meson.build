@@ -81,7 +81,7 @@ sdl_options += [
 include_dir = include_directories('./include')
 
 if host_machine.system() == 'windows'
-  deps = ['-lmingw32','-lm']
+  deps = ['-lm','-mwindows','-static']
 else
   deps = [
    '-lm',
