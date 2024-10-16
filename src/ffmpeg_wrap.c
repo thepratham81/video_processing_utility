@@ -205,7 +205,6 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
             }
             if(callback){
                 callback(&vp,data);
-                fflush(stdout);
             } 
     }
     vp.progress = 100;
