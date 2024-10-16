@@ -51,7 +51,7 @@ char ** open_file_dialog(const char *initial_dir , const char *filter) {
     opendialog.nFilterIndex = 1;
     opendialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
     char **result = _get_selected_files(&opendialog);
-    free(filter_string);
+    free_vector(filter_string);
     return result;
 }
 #else
