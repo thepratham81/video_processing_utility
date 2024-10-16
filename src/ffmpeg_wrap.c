@@ -14,7 +14,10 @@
     #define lseek(fd, offset, whence) _lseek(fd, offset, whence)
 #endif
 
-
+void default_callback(VideoProgress *v, void *data){
+    (void)data;
+    printf("%s %f",v->file_name,v->progress);
+}
 
 void video_rotate(Video *video, float angle) {
     char temp[100] = {0};
@@ -191,6 +194,7 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
         return;
     }
     
+    if(!callback) callback = default_callback;
     FILE* p_stderr = subprocess_stderr(&subprocess);
     char process_stdout[1024];
     int len = sizeof(process_stdout);
@@ -203,15 +207,11 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
                 subprocess_destroy(&subprocess);
                 break;
             }
-            if(callback){
-                callback(&vp,data);
-            } 
+            callback(&vp,data);
     }
     vp.progress = 100;
     vp.is_finished = true;
-    if(callback){
-            callback(&vp,data);
-    } 
+    callback(&vp,data);
 }
 
 //start subprocess of generated command
