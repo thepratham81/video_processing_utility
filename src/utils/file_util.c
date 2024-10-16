@@ -7,6 +7,30 @@
 #include "file_util.h"
 #include<libgen.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <windows.h>
+#include <shlobj.h>
+
+void get_video_folder(char *path) {
+    SHGetFolderPathA(NULL, CSIDL_MYVIDEO, NULL, 0, path);
+}
+
+#else
+#include <limits.h>
+#include <unistd.h>
+void get_video_folder(char *path) {
+    const char *home = getenv("HOME");
+    if (home != NULL) {
+        snprintf(path, PATH_MAX, "%s/Videos", home);
+    } else {
+        strcpy(path, "./Videos");
+    }
+}
+
+#endif
+
+
 char *str_duplicate(const char * str){
     if(!str){
         return NULL;
