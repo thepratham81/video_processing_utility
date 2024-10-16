@@ -209,6 +209,9 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
     }
     vp.progress = 100;
     vp.is_finished = true;
+    if(callback){
+            callback(&vp,data);
+    } 
 }
 
 //start subprocess of generated command
