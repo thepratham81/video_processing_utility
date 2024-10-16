@@ -47,6 +47,13 @@ void callback(VideoProgress *v, void *data) {
 
 }
 
+void get_formated_time(char dest[],size_t len){
+    time_t now;
+    time(&now);
+    struct tm *local = localtime(&now);
+    strftime(dest,len, "%Y-%m-%d_%H.%M.%S", local);
+}
+
 void add_items(struct nk_context *ctx, List *list) {
     Node *node = list->head;
     Node *next_node;
@@ -81,14 +88,14 @@ void apply_filter(Video *video, int *flags, VideoOptions *video_opt) {
     if (flags[VIDEO_CONTARAST])
         video_set_contrast(video, video_opt->contrast);
 }
-static void process_video(char *file_name, int *flags, VideoOptions *video_opt) {
+static void process_video(const char *file_name, int *flags, VideoOptions *video_opt) {
     Video v;
+    char formated_time[32]; // large enough to store formated time 
     char *file_name_without_ext = get_filename(file_name);
     char *extension = get_extension(file_name);
     String *output_file = String_from(file_name_without_ext);
-    str_cat(&output_file, "_Processed");
-    if (extension)
-        str_cat(&output_file, extension);
+    get_formated_time(formated_time,sizeof(formated_time));
+    str_cat(&output_file, "_Processed_",formated_time,extension);
 
     video_init(&v, file_name, output_file);
 
