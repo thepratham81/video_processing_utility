@@ -11,6 +11,7 @@
 #include "file_util.h"
 #include "list.h"
 #include "subprocess.h"
+#include "file_dialog.h"
 #include "ui/main_ui.h"
 #include "vector.h"
 #include "video.h"
@@ -157,9 +158,20 @@ void btn_stop_clicked(){
     _intrupt = STOP_RENDRING;
     SDL_SetWindowTitle(_window, TITLE);
 }
+
+void btn_add_file_clicked(List *list){
+    char video_folder[2048];
+    get_video_folder(video_folder);
+    char **result = open_file_dialog(video_folder, "Video File |*.mkv;*mp4;*.avi");
+    for(int i = 0 ; i < vector_length(result);i++){
+        list_append(list, str_duplicate(result[i]));
+        free_string(result[i]);
+    }
+    free_vector(result);
+}
 void main_ui(WinData *windata) {
 
-    static List list = {NULL, NULL, SDL_free};
+    static List list = {NULL, NULL, free};
     static VideoOptions video_options = {.angle = 90};
     static char output_dir[255];
 
@@ -172,7 +184,8 @@ void main_ui(WinData *windata) {
             windata->should_close = 1;
         } else if (evt.type == SDL_DROPFILE) { // File is droped in window
             if (is_file_allowed(evt.drop.file)) {
-                list_append(&list, evt.drop.file);
+                list_append(&list, str_duplicate(evt.drop.file));
+                SDL_free(evt.drop.file);
             }
         }
 
@@ -199,6 +212,7 @@ void main_ui(WinData *windata) {
             // Button Add Files
             nk_layout_row_dynamic(ctx, 0, 2);
             if (nk_button_label(ctx, "Add File(s)")) {
+                btn_add_file_clicked(&list);
             }
 
             // Button Remove all files

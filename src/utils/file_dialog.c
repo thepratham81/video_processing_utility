@@ -1,25 +1,45 @@
 #include "file_util.h"
+#include "cstring.h"
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #include <commdlg.h>
 
-char *generate_filter(char *filter){
-    size_t n = strlen(filter);
-    char *res = malloc(n+1);
-    if(!res) return NULL;
-    memcpy(res,filter,n+1);
+char *generate_filter(const char *filter){
+    char *res = String_from(filter);
+    size_t n = str_len(res);
     for(size_t i = 0 ; i<n;i++){
         if(res[i]=='|') res[i] = '\0';
     }
+    vector_append(res,'\0');
     return res;
 }
+char **_get_selected_files(OPENFILENAME *opendialog) {
+    String **result = Vector(*result);
+    if (GetOpenFileName(opendialog)) {
+        char *p = opendialog->lpstrFile;
+        char *can_be_dir = String_from(p);
+        p += strlen(p) + 1;
+        while (*p) {
+            String *temp = String_from(can_be_dir);
+            str_cat(&temp,"\\",p);
+            vector_append(result,temp);
+            p += strlen(p) + 1;
+        }
+        if(vector_length(result)>0){
+            free_string(can_be_dir);
+        }else{
+            vector_append(result,can_be_dir);
+        }
+    }
+    return result;
+}
 
-void open_file_dialog(char *initial_dir , char *filter) {
+char ** open_file_dialog(const char *initial_dir , const char *filter) {
     OPENFILENAME opendialog = {0};
     char szFile[1024] = {0};
     char *filter_string = generate_filter(filter);
     opendialog.lStructSize = sizeof(opendialog);
-    opendialog.hwndOwner = GetForegroundWindow();;
+    opendialog.hwndOwner = GetForegroundWindow();
     opendialog.hInstance = GetModuleHandle(NULL);
     opendialog.lpstrFile = szFile;
     opendialog.nFilterIndex = 0;
@@ -30,18 +50,23 @@ void open_file_dialog(char *initial_dir , char *filter) {
     opendialog.lpstrFilter = filter_string;
     opendialog.nFilterIndex = 1;
     opendialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
-    GetOpenFileName(&opendialog);
+    char **result = _get_selected_files(&opendialog);
     free(filter_string);
+    return result;
 }
 #else
 
-void open_file_dialog(char *initial_dir , char *filter) {
+char **open_file_dialog(char *initial_dir , char *filter) {
     char result[1024] = "yad --file-selection";
     if(filter){
 
     }
+    return NULL;
 }
 #endif
-int main() {
-    open_file_dialog("/home","Text file |*.txt|Image file|*.jpg");
-}
+// int main() {
+//     char **res = open_file_dialog("/home/user","Text file |*.txt|Image file|*.png");
+//     for(int i = 0 ; i < vector_length(res);i++){
+//        puts(res[i]);
+//     }
+// }
