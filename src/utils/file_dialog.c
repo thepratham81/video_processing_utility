@@ -14,9 +14,8 @@ char *generate_filter(const char *filter){
     return res;
 }
 char **_get_selected_files(OPENFILENAME *opendialog) {
-    String **result = NULL; 
+    String **result = Vector(*result);
     if (GetOpenFileName(opendialog)) {
-        result = Vector(*result);
         char *p = opendialog->lpstrFile;
         char *can_be_dir = String_from(p);
         p += strlen(p) + 1;

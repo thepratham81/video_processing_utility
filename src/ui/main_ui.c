@@ -162,7 +162,7 @@ void btn_stop_clicked(){
 void btn_add_file_clicked(List *list){
     char video_folder[2048];
     get_video_folder(video_folder);
-    char **result = open_file_dialog(video_folder, "Video File |*.mkv;*mp4;*.avi");
+    char **result = open_file_dialog(video_folder, "Video File |*.mkv;*.mp4;*.avi");
     for(int i = 0 ; i < vector_length(result);i++){
         list_append(list, str_duplicate(result[i]));
         free_string(result[i]);
