@@ -14,8 +14,9 @@ char *generate_filter(const char *filter){
     return res;
 }
 char **_get_selected_files(OPENFILENAME *opendialog) {
-    String **result = Vector(*result);
+    String **result = NULL; 
     if (GetOpenFileName(opendialog)) {
+        result = Vector(*result);
         char *p = opendialog->lpstrFile;
         char *can_be_dir = String_from(p);
         p += strlen(p) + 1;
@@ -64,9 +65,3 @@ char **open_file_dialog(char *initial_dir , char *filter) {
     return NULL;
 }
 #endif
-// int main() {
-//     char **res = open_file_dialog("/home/user","Text file |*.txt|Image file|*.png");
-//     for(int i = 0 ; i < vector_length(res);i++){
-//        puts(res[i]);
-//     }
-// }
