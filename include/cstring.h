@@ -131,11 +131,12 @@ typedef char String;
 #define String_init() Vector(char)
 #define str_len(String) (vector_length(String) - 1)
 #define free_string(String) free_vector(String)
-#define str_cat(des,...) _str_cat(dest,__VA_ARGS__,NULL)
+#define str_cat(dest,...) _str_cat(dest,__VA_ARGS__,NULL)
 char *String_from(const char *cstr);
 String **str_split(const char *str, char *delimeter);
 String *str_join(const char **src, const char *delimeter, size_t len_src,
         const char *initial,const char*end);
+void _str_cat(String **dest,...);
 #endif // _String_H_
 
 #if defined(IMPLEMENT_STRING)
@@ -150,7 +151,9 @@ char *String_from(const char *cstr) {
     vector_append(str, '\0');
     return str;
 }
-static void _str_cat(String **dest,...) {
+void _str_cat(String **dest,...) {
+    if(!dest) return;
+    if(vector_length(*dest)>0) (void)vector_pop(*dest);
     va_list ap;
     va_start(ap,dest);
     char *src;
