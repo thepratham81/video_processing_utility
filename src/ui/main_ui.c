@@ -1,4 +1,3 @@
-#include <immintrin.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,8 +14,10 @@
 #include "ui/main_ui.h"
 #include "vector.h"
 #include "video.h"
+
 #define BUFFER 100
 #define TITLE "VPU"
+
 #define disable_begin(ctx, condition) \
     if (condition)                    \
     nk_widget_disable_begin(ctx)
@@ -45,7 +46,7 @@ void callback(VideoProgress *v, void *data) {
     
     snprintf(title, len + BUFFER, "VPU: %s %.2f", v->file_name, v->progress);
     SDL_SetWindowTitle(_window, (v->is_finished)?TITLE:title);
-
+    (void)data;
 }
 
 void get_formated_time(char dest[],size_t len){
