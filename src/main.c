@@ -96,9 +96,6 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
-
     renderer = SDL_CreateRenderer(win, -1, flags);
 
     if (renderer == NULL) {
