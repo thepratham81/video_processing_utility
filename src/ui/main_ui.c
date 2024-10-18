@@ -4,34 +4,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "SDL_events.h"
-#include "SDL_stdinc.h"
-#include "cstring.h"
-#include "file_util.h"
-#include "list.h"
-#include "subprocess.h"
-#include "file_dialog.h"
 #include "ui/main_ui.h"
-#include "vector.h"
-#include "video.h"
 
-#define BUFFER 100
-#define TITLE "VPU"
-
-#define disable_begin(ctx, condition) \
-    if (condition)                    \
-    nk_widget_disable_begin(ctx)
-#define disable_end(ctx, condition) \
-    if (condition)                  \
-    nk_widget_disable_end(ctx)
-
-struct _thread_args {
-    List *list;
-    int *flags;
-    VideoOptions *video_opt;
-};
-
-const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 SDL_Window *_window = NULL;
 bool _is_task_running = false;
 int _intrupt = 0;

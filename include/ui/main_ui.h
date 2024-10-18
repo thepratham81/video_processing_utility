@@ -14,6 +14,27 @@
 #include <SDL.h>
 #endif //NK_NUKLEAR_H_
 
+#include "SDL_events.h"
+#include "SDL_stdinc.h"
+#include "cstring.h"
+#include "file_util.h"
+#include "list.h"
+#include "subprocess.h"
+#include "file_dialog.h"
+#include "vector.h"
+#include "video.h"
+
+#define BUFFER 100
+#define TITLE "VPU"
+
+#define disable_begin(ctx, condition) \
+    if (condition)                    \
+    nk_widget_disable_begin(ctx)
+#define disable_end(ctx, condition) \
+    if (condition)                  \
+    nk_widget_disable_end(ctx)
+
+
 typedef struct {
     struct nk_context *ctx;
     SDL_Renderer *renderer;
@@ -47,6 +68,13 @@ typedef struct{
     int angle;
 }VideoOptions;
 
+struct _thread_args {
+    List *list;
+    int *flags;
+    VideoOptions *video_opt;
+};
+
+const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 void main_ui(WinData *windata);
 
 #endif // MAIN_UI_H
