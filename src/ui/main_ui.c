@@ -170,8 +170,14 @@ void btn_add_file_clicked(List *list){
     }
     free_vector(result);
 }
-void main_ui(WinData *windata) {
 
+void btn_process_video_clicked(List *list,VideoOptions *video_options){
+    _is_task_running = true;
+    _intrupt = 0;
+    process_video_list(list, video_options->check, video_options);
+}
+
+void main_ui(WinData *windata) {
     static List list = {NULL, NULL, free};
     static VideoOptions video_options = {.angle = 90};
     static char output_dir[255];
@@ -276,7 +282,7 @@ void main_ui(WinData *windata) {
         {
 
             nk_layout_row_push(ctx, 0.80f);
-            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, output_dir, 255, NULL);
+            nk_edit_string_zero_terminated(ctx, NK_EDIT_FIELD, output_dir,sizeof(output_dir), NULL);
 
             nk_layout_row_push(ctx, 0.20f);
             if (nk_button_label(ctx, "Browse")) {
@@ -286,6 +292,9 @@ void main_ui(WinData *windata) {
         }
 
         nk_layout_row_dynamic(ctx, 0, 1);
+        if(nk_button_label(ctx,"try it")){
+            puts(video_get_ffmpeg_path());
+         }
         if (_is_task_running) {
             if (nk_button_label(ctx, "Stop All")) btn_stop_clicked();
             
@@ -295,9 +304,7 @@ void main_ui(WinData *windata) {
             disable_begin(ctx, !list.head || _is_task_running); //_is_task_running -> global variable;
 
             if (nk_button_label(ctx, "Process Video")) {
-                _is_task_running = true;
-                _intrupt = 0;
-                process_video_list(&list, video_options.check, &video_options);
+                btn_process_video_clicked(&list, &video_options);
             }
             disable_end(ctx, list.head || !_is_task_running);
         }
