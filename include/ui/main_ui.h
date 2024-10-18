@@ -74,7 +74,6 @@ struct _thread_args {
     VideoOptions *video_opt;
 };
 
-const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 void main_ui(WinData *windata);
 
 #endif // MAIN_UI_H

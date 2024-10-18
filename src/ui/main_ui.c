@@ -9,6 +9,7 @@
 SDL_Window *_window = NULL;
 bool _is_task_running = false;
 int _intrupt = 0;
+const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 
 void callback(VideoProgress *v, void *data) {
     size_t len = str_len(v->file_name);
