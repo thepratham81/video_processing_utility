@@ -31,7 +31,7 @@ struct _thread_args {
     VideoOptions *video_opt;
 };
 
-char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
+const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 SDL_Window *_window = NULL;
 bool _is_task_running = false;
 int _intrupt = 0;
