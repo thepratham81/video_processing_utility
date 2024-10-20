@@ -117,7 +117,7 @@ void video_generate_command(Video *video) {
         return;
     }
 
-    vector_append(command, String_from("/usr/bin/ffmpeg"));
+    vector_append(command, String_from("ffmpeg"));
     vector_append(command, String_from("-i"));
     vector_append(command, String_from(video->input_file));
 
@@ -142,7 +142,7 @@ void video_init(Video *v , char *input_file, char *output_file) {
 static float video_duration(const char *file_name) {
     //TODO: get more info about video
     const char *command[] = {
-    "/usr/bin/ffprobe",
+    "ffprobe",
     "-v",
     "error",
     "-show_entries",
@@ -154,7 +154,9 @@ static float video_duration(const char *file_name) {
     };
 
     struct subprocess_s subprocess;
-    int result = subprocess_create(command, 0, &subprocess);
+    int result = subprocess_create(command,
+                                    subprocess_option_search_user_path|subprocess_option_no_window,
+                                   &subprocess);
     float video_length;
     if(result!=0){
         fprintf(stderr,"Error: Unable to create subprocess");
@@ -188,7 +190,9 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
     struct subprocess_s subprocess;
     VideoProgress vp = {0};
     video_generate_command(video);
-    int result = subprocess_create((const char * const *)video->command, 0, &subprocess);
+    int result = subprocess_create((const char * const *)video->command,
+                                   subprocess_option_search_user_path|subprocess_option_no_window,
+                                    &subprocess);
     if(result!=0){
         fprintf(stderr,"Error: Unable to create subprocess");
         return;
