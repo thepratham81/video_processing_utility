@@ -155,7 +155,7 @@ void video_generate_command(Video *video) {
     video->command = command;
 }
 
-void video_init(Video *v , char *input_file, char *output_file) {
+void video_init(Video *v ,const char *input_file, const char *output_file) {
     v->extra_option = Vector(char *);
     v->output_file  = String_from(output_file);
     v->input_file   = String_from(input_file);
