@@ -27,7 +27,7 @@
 #include "ui/main_ui.h"
 
 #define WINDOW_WIDTH 1000
-#define WINDOW_HEIGHT 600
+#define WINDOW_HEIGHT 650
 #define TITLE "VPU"
 
 int main(int argc, char *argv[]) {
