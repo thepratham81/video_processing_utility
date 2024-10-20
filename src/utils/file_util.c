@@ -13,8 +13,8 @@
 #include <windows.h>
 #include <shlobj.h>
 
-void get_executable_path(char* path) {
-    GetModuleFileNameA(NULL, path, PATH_MAX);
+void get_video_folder(char *path) {
+    SHGetFolderPathA(NULL, CSIDL_MYVIDEO, NULL, 0, path);
 }
 
 void get_executable_path(char* path) {
