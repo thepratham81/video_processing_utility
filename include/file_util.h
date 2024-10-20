@@ -1,14 +1,12 @@
 #ifndef _FILE_UITL_H_
-#include<stdio.h>
+#include <stdio.h>
+#include <limits.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-    #define PATH_MAX MAX_PATH
-
     #include <windows.h>
     #include <shlobj.h>
 #else
 
-    #include <limits.h>
     #include <unistd.h>
 #endif
 
