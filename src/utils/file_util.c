@@ -1,4 +1,6 @@
 
+#include <math.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -50,7 +52,41 @@ char *str_duplicate(const char * str){
     return new_str;
 }
 
+char *join_path(const char *base, ...) {
+    va_list ap;
+    char *result = malloc(PATH_MAX + 1);
+    if (!result) return NULL;
 
+    size_t result_size = 0;
+    size_t base_len = strlen(base);
+    
+    if (base_len >= PATH_MAX) {
+        free(result);
+        return NULL;
+    }
+
+    if(base[base_len-1]==PATH_SEP) base_len--;
+
+    memcpy(result, base, base_len);
+    result_size += base_len;
+
+    va_start(ap, base);
+    char *temp;
+    
+    while ((temp = va_arg(ap, char *)) != NULL) {
+        size_t temp_len = strlen(temp);
+        if (result_size + temp_len + 1 >= PATH_MAX) {
+            free(result);
+            return NULL;
+        }
+        result[result_size++] = PATH_SEP;
+        memcpy(result + result_size, temp, temp_len);
+        result_size += temp_len;
+    }
+    result[result_size] = '\0';
+    va_end(ap);
+    return result;
+}
 
 long get_file_size(FILE *file){
     long file_size = -1;
@@ -59,6 +95,7 @@ long get_file_size(FILE *file){
     fseek(file, 0, SEEK_SET);
     return file_size;
 }
+
 char *add_extension(const char *file_name , const char *extension){
     char *new_file_name = malloc(strlen(file_name)+strlen(extension)+1);
 

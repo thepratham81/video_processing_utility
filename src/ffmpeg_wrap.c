@@ -1,4 +1,5 @@
 #include "file_util.h"
+#include <stdarg.h>
 #define IMPLEMENT_VECTOR
 #include <math.h>
 #include <stdio.h>
@@ -12,11 +13,34 @@
 #ifdef _WIN32
     #define fileno(stream) _fileno(stream)
     #define lseek(fd, offset, whence) _lseek(fd, offset, whence)
+    #define FFMPEG "ffmpeg.exe"
+    #define FFPROBE "ffprobe.exe"
+#else
+    #define FFMPEG "ffmpeg"
+    #define FFPROBE "ffprobe"
 #endif
 
 void default_callback(VideoProgress *v, void *data){
     (void)data;
     printf("%s %f",v->file_name,v->progress);
+}
+
+char *get_ffmpeg_path(){
+    char executable_path[PATH_MAX];
+    get_executable_path(executable_path);    
+    char *dirname = get_dirname(executable_path); 
+    char *result = join_path(dirname ,"ffmpeg" ,FFMPEG,NULL);
+    free(dirname);
+    return result;
+}
+
+char *get_ffprobe_path(){
+    char executable_path[PATH_MAX];
+    get_executable_path(executable_path);    
+    char *dirname = get_dirname(executable_path); 
+    char *result = join_path(dirname,"ffmpeg" ,FFPROBE,NULL);
+    free(dirname);
+    return result;
 }
 
 void video_rotate(Video *video, float angle) {
@@ -116,8 +140,9 @@ void video_generate_command(Video *video) {
     if (!command) {
         return;
     }
-
-    vector_append(command, String_from("ffmpeg"));
+    char *ffmpeg_path = get_ffmpeg_path();
+    vector_append(command, String_from(ffmpeg_path));
+    free(ffmpeg_path);
     vector_append(command, String_from("-i"));
     vector_append(command, String_from(video->input_file));
 
@@ -141,8 +166,9 @@ void video_init(Video *v , char *input_file, char *output_file) {
 //get the duration of a video
 static float video_duration(const char *file_name) {
     //TODO: get more info about video
+    char *ffprobe_path = get_ffprobe_path();
     const char *command[] = {
-    "ffprobe",
+    ffprobe_path,
     "-v",
     "error",
     "-show_entries",
@@ -157,6 +183,7 @@ static float video_duration(const char *file_name) {
     int result = subprocess_create(command,
                                     subprocess_option_search_user_path|subprocess_option_no_window,
                                    &subprocess);
+    free(ffprobe_path);
     float video_length;
     if(result!=0){
         fprintf(stderr,"Error: Unable to create subprocess");

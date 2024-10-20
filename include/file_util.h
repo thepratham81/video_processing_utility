@@ -5,9 +5,12 @@
 #if defined(_WIN32) || defined(_WIN64)
     #include <windows.h>
     #include <shlobj.h>
+    #define PATH_SEP '\\'
 #else
 
     #include <unistd.h>
+    #define PATH_SEP '/'
+
 #endif
 
 long get_file_size(FILE *file);
@@ -22,4 +25,5 @@ char *get_filename(const char *path);
 char *get_extension(const char *path);
 void get_video_folder(char *path);
 void get_executable_path(char* path);
+char *join_path(const char *base, ...);
 #endif // _FILE_UITL_H_

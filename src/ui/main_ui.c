@@ -10,7 +10,7 @@ SDL_Window *_window = NULL;
 bool _is_task_running = false;
 int _intrupt = 0;
 const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
-
+extern char *get_ffmpeg_path();
 void callback(VideoProgress *v, void *data) {
     size_t len = str_len(v->file_name);
     char *title = malloc(len + BUFFER);
@@ -267,9 +267,7 @@ void main_ui(WinData *windata) {
         }
 
         nk_layout_row_dynamic(ctx, 0, 1);
-        if(nk_button_label(ctx,"try it")){
-            puts(video_get_ffmpeg_path());
-         }
+
         if (_is_task_running) {
             if (nk_button_label(ctx, "Stop All")) btn_stop_clicked();
             
