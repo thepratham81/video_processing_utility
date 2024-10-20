@@ -11,4 +11,5 @@ int is_valid_path(const char *const path);
 char *get_filename(const char *path);
 char *get_extension(const char *path);
 void get_video_folder(char *path);
+void get_executable_path(char* path);
 #endif // _FILE_UITL_H_
