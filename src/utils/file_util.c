@@ -8,12 +8,17 @@
 #include<libgen.h>
 
 #if defined(_WIN32) || defined(_WIN64)
+#define PATH_MAX MAX_PATH
 
 #include <windows.h>
 #include <shlobj.h>
 
-void get_video_folder(char *path) {
-    SHGetFolderPathA(NULL, CSIDL_MYVIDEO, NULL, 0, path);
+void get_executable_path(char* path) {
+    GetModuleFileNameA(NULL, path, PATH_MAX);
+}
+
+void get_executable_path(char* path) {
+    GetModuleFileNameA(NULL, path, PATH_MAX);
 }
 
 #else
@@ -26,6 +31,11 @@ void get_video_folder(char *path) {
     } else {
         strcpy(path, "./Videos");
     }
+}
+
+
+void get_executable_path(char* path) {
+    readlink("/proc/self/exe", path, PATH_MAX);
 }
 
 #endif
