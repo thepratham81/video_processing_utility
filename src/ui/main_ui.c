@@ -8,6 +8,7 @@
 
 SDL_Window *_window = NULL;
 bool _is_task_running = false;
+bool _is_file_dialog_open = false;
 int _intrupt = 0;
 const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
 extern char *get_ffmpeg_path();
@@ -65,7 +66,7 @@ void apply_filter(Video *video, int *flags, VideoOptions *video_opt) {
     if (flags[VIDEO_CONTARAST])
         video_set_contrast(video, video_opt->contrast);
 }
-static void process_video(const char *file_name, int *flags, VideoOptions *video_opt) {
+static void process_video(const char *file_name, const char *output_dir, int *flags, VideoOptions *video_opt) {
     Video v;
     char formated_time[32]; // large enough to store formated time 
     char *file_name_without_ext = get_filename(file_name);
@@ -94,7 +95,7 @@ static void *_process_video_list_helper(void *data) {
     while (node) {
         if (!_is_task_running) break;
         
-        process_video(node->data, args->flags, args->video_opt);
+        process_video(node->data,args->output_folder, args->flags, args->video_opt);
         node = node->next;
     }
     _is_task_running = false;
@@ -102,12 +103,13 @@ static void *_process_video_list_helper(void *data) {
     return NULL;
 }
 
-void process_video_list(List *list, int *flags, VideoOptions *video_opt) {
+void process_video_list(List *list,const char*output_folder,int *flags, VideoOptions *video_opt) {
     static struct _thread_args args;
     static pthread_t tid;
     args.list = list;
     args.flags = flags;
     args.video_opt = video_opt;
+    args.output_folder = output_folder;
     _is_task_running = true;
     pthread_create(&tid, NULL, _process_video_list_helper, &args);
 }
@@ -135,27 +137,49 @@ void btn_stop_clicked(){
     SDL_SetWindowTitle(_window, TITLE);
 }
 
-void btn_add_file_clicked(List *list){
+void btn_output_folder_clicked(char *selected_folder){
+    String *temp = select_folder_dialog(NULL);
+    size_t len = strlen(temp);
+    if(!temp || len >= PATH_MAX) return;
+    strcpy(selected_folder,temp); 
+    free_string(temp);
+}
+
+void *_btn_add_file_clicked_helper(void *data){
+    List *list = data;
     char video_folder[2048];
     get_video_folder(video_folder);
-    char **result = open_file_dialog(video_folder, "Video File |*.mkv;*.mp4;*.avi");
+    char **result = open_file_dialog(video_folder, "Video File |*.mkv;*.mp4;*.avi|All Files|*.*");
+    if(!result){
+        _is_file_dialog_open = false;
+        return NULL;
+    } 
     for(int i = 0 ; i < vector_length(result);i++){
         list_append(list, str_duplicate(result[i]));
         free_string(result[i]);
     }
     free_vector(result);
+    _is_file_dialog_open = false;
+    return NULL;
 }
 
-void btn_process_video_clicked(List *list,VideoOptions *video_options){
+void btn_add_file_clicked(List *list){
+    pthread_t tid;
+    _is_file_dialog_open = true;
+    pthread_create(&tid, NULL, _btn_add_file_clicked_helper, list);
+
+}
+
+void btn_process_video_clicked(List *list,const char*output_folder,VideoOptions *video_options){
     _is_task_running = true;
     _intrupt = 0;
-    process_video_list(list, video_options->check, video_options);
+    process_video_list(list, output_folder ,video_options->check, video_options);
 }
 
 void main_ui(WinData *windata) {
     static List list = {NULL, NULL, free};
     static VideoOptions video_options = {.angle = 90};
-    static char output_dir[255];
+    static char output_dir[PATH_MAX];
 
     SDL_Event evt;
     struct nk_context *ctx = windata->ctx;
@@ -193,9 +217,11 @@ void main_ui(WinData *windata) {
 
             // Button Add Files
             nk_layout_row_dynamic(ctx, 0, 2);
+            disable_begin(ctx,_is_file_dialog_open );
             if (nk_button_label(ctx, "Add File(s)")) {
                 btn_add_file_clicked(&list);
             }
+            disable_end(ctx,_is_file_dialog_open );
 
             // Button Remove all files
             // Disable button if list is empty
@@ -252,7 +278,10 @@ void main_ui(WinData *windata) {
 
         // Output Folder Selection
         nk_layout_row_dynamic(ctx, 0, 1);
+        nk_checkbox_label(ctx,"Output directory same as input directory",&video_options.check[VIDEO_OUTPUT_DIR]);
         nk_label(ctx, "Output Folder:", NK_TEXT_CENTERED | NK_TEXT_LEFT);
+
+        disable_begin(ctx,video_options.check[VIDEO_OUTPUT_DIR]);
         nk_layout_row_begin(ctx, NK_DYNAMIC, 0, 2);
         {
 
@@ -261,10 +290,13 @@ void main_ui(WinData *windata) {
 
             nk_layout_row_push(ctx, 0.20f);
             if (nk_button_label(ctx, "Browse")) {
+                btn_output_folder_clicked(output_dir);
             }
 
             nk_layout_row_end(ctx);
         }
+        
+        disable_end(ctx,video_options.check[VIDEO_OUTPUT_DIR]);
 
         nk_layout_row_dynamic(ctx, 0, 1);
 
@@ -277,7 +309,7 @@ void main_ui(WinData *windata) {
             disable_begin(ctx, !list.head || _is_task_running); //_is_task_running -> global variable;
 
             if (nk_button_label(ctx, "Process Video")) {
-                btn_process_video_clicked(&list, &video_options);
+                btn_process_video_clicked(&list,output_dir, &video_options);
             }
             disable_end(ctx, list.head || !_is_task_running);
         }

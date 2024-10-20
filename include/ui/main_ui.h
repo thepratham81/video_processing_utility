@@ -53,7 +53,8 @@ typedef enum {
     VIDEO_BRIGHTNESS,
     VIDEO_CONTARAST,
     VIDEO_SCALE,
-    VIDEO_MERGE_VIDEOS
+    VIDEO_MERGE_VIDEOS,
+    VIDEO_OUTPUT_DIR
 } Filter;
 
 typedef struct{
@@ -71,6 +72,7 @@ typedef struct{
 struct _thread_args {
     List *list;
     int *flags;
+    char *output_folder;
     VideoOptions *video_opt;
 };
 
