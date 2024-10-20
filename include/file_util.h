@@ -1,5 +1,17 @@
 #ifndef _FILE_UITL_H_
 #include<stdio.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #define PATH_MAX MAX_PATH
+
+    #include <windows.h>
+    #include <shlobj.h>
+#else
+
+    #include <limits.h>
+    #include <unistd.h>
+#endif
+
 long get_file_size(FILE *file);
 char *add_extension(const char *file_name , const char *extension);
 char *str_duplicate(const char * str);
