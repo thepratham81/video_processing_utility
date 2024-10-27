@@ -169,7 +169,8 @@ void btn_stop_clicked(){
 void *_btn_output_folder_clicked_helper(void *data){
 	char *selected_folder = data;
     String *temp = select_folder_dialog(NULL);
-    size_t len   = strlen(temp);
+    if(!temp) goto cleanup;
+    size_t len   = str_len(temp);
     if(!temp || len >= PATH_MAX) goto cleanup;
     strcpy(selected_folder,temp); 
 

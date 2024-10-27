@@ -75,14 +75,14 @@ char* select_folder_dialog(char *initial_dir) {
                     PWSTR path;
                     psi->lpVtbl->GetDisplayName(psi, SIGDN_FILESYSPATH, &path);
 
-                    char folderPath[MAX_PATH];
-                    wcstombs(folderPath, path, MAX_PATH);
+                    char folder_path[MAX_PATH];
+                    wcstombs(folder_path, path, MAX_PATH);
 
                     CoTaskMemFree(path);
                     psi->lpVtbl->Release(psi);
                     pfd->lpVtbl->Release(pfd);
                     CoUninitialize();
-                    return str_duplicate(folderPath);
+                    return String_from(folder_path);
                 }
             }
             pfd->lpVtbl->Release(pfd);
