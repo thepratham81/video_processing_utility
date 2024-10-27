@@ -1,4 +1,5 @@
 #include "file_util.h"
+#include "subprojects/SDL2-2.28.5/src/video/khronos/vulkan/vulkan_core.h"
 #include <stdarg.h>
 #define IMPLEMENT_VECTOR
 #include <math.h>
@@ -117,6 +118,11 @@ void video_resize(Video *video, int width, int height) {
     vector_append(video->filters, String_from(temp));
 }
 
+void video_sterio_to_mono(Video *video){
+    vector_append(video->extra_option,String_from("-ac"));
+    vector_append(video->extra_option,String_from("1")); 
+}
+
 // add -vf [options] to command line argument
 static void _apply_filter(Video *video, void *cmd) {
     char ***command = cmd;
@@ -146,8 +152,11 @@ void video_generate_command(Video *video) {
     vector_append(command, String_from("-i"));
     vector_append(command, String_from(video->input_file));
 
+	for(size_t i = 0 ; i < vector_length(video->extra_option);i++ ){
+    	vector_append(command , String_from(video->extra_option[i]));
+	}
     _apply_filter(video, &command);
-    
+
     vector_append(command,String_from("-progress"));
     vector_append(command,String_from("pipe:2"));
     vector_append(command, String_from(video->output_file));
@@ -253,16 +262,20 @@ void video_render(Video *video,void *data, void (*callback)(VideoProgress *,void
 void video_render_with_intrupt(Video *video,void *data, void (*callback)(VideoProgress *,void *),int *intrupt) {
     _video_render_helper(video,data,callback,intrupt);
 }
+
+
+static void _free_helper(char **to_free){
+     for (size_t i = 0; i < vector_length(to_free); i++) {
+        free_string(to_free[i]);
+    }
+    free_string(to_free); 
+}
+ 
 void free_video(Video *video) {
-    for (size_t i = 0; i < vector_length(video->filters); i++) {
-        free_string(video->filters[i]);
-    }
+    _free_helper(video->filters); 
+    _free_helper(video->extra_option); 
     if (video->command) {
-
-        for (size_t i = 0; i < vector_length(video->command); i++) {
-            free_string(video->command[i]);
-        }
+        _free_helper(video->command); 
     }
 
-    free_string(video->filters);
 }

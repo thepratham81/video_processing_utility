@@ -20,20 +20,48 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #include "nuklear.h"
+
 #define NK_SDL_RENDERER_IMPLEMENTATION
 #include "nuklear_sdl_renderer.h"
 
+#include "stb_to_sdl.h"
 #include "./resources.c"
+#include "./ui_assest.c"
 #include "ui/main_ui.h"
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 650
 #define TITLE "VPU"
 
+struct Theme {
+    struct nk_image check;
+    struct nk_image check_cursor;
+    struct nk_image icon_delete;
+};
+
+void init_theme(struct nk_context *ctx, struct Theme *theme , SDL_Renderer *renderer){
+        image_load_memory(checked_png,checked_png_len,renderer);
+        theme->check        = nk_image_ptr(image_load_memory(unchecked_png,unchecked_png_len,renderer));
+        theme->check_cursor = nk_image_ptr(image_load_memory(checked_png,checked_png_len,renderer));
+        theme->icon_delete  = nk_image_ptr(image_load_memory(delete_png,delete_png_len,renderer));
+
+        /* checkbox toggle */
+        struct nk_style_toggle *toggle;
+        toggle = &ctx->style.checkbox; 
+
+        toggle->normal          = nk_style_item_image(theme->check);
+        toggle->hover           = nk_style_item_image(theme->check);
+        toggle->active          = nk_style_item_image(theme->check);
+
+        toggle->cursor_normal   = nk_style_item_image(theme->check_cursor);
+        toggle->cursor_hover    = nk_style_item_image(theme->check_cursor);
+}
+
 int main(int argc, char *argv[]) {
 
     /* Platform */
     WinData windata;
+    struct Theme media;
     SDL_Window *win;
     SDL_Renderer *renderer;
     int running = 1;
@@ -143,14 +171,17 @@ int main(int argc, char *argv[]) {
         nk_style_set_font(ctx, &font->handle);
     }
 
+    init_theme(ctx,&media,renderer);
+
     // populating windata
-    windata.ctx = ctx;
-    windata.renderer = renderer;
-    windata.w = WINDOW_WIDTH;
-    windata.h = WINDOW_WIDTH;
+    windata.ctx          = ctx;
+    windata.renderer     = renderer;
+    windata.w            = WINDOW_WIDTH;
+    windata.h            = WINDOW_WIDTH;
     windata.should_close = 0;
     windata.handle_event = nk_sdl_handle_event;
-    windata.window = win;
+    windata.window       = win;
+    windata.icon_delete  = media.icon_delete;
 
     while (running) {
         /* Input */

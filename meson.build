@@ -90,7 +90,9 @@ else
 endif
 executable(
   'vpu',
-  sources: ['src/main.c','src/ui/main_ui.c','src/list.c','src/ffmpeg_wrap.c','src/utils/file_util.c','src/utils/file_dialog.c'],
+  sources: ['src/main.c','src/ui/main_ui.c','src/list.c',
+    'src/ffmpeg_wrap.c','src/utils/file_util.c',
+    'src/utils/file_dialog.c'],
   include_directories: [include_dir],
   c_args: c_flags,
   dependencies: [

@@ -41,6 +41,7 @@ typedef struct {
     SDL_Window *window;
     int (*handle_event)(SDL_Event *evt);
     int should_close;
+    struct nk_image icon_delete;
     int w;
     int h;
 }WinData;
@@ -54,7 +55,8 @@ typedef enum {
     VIDEO_CONTARAST,
     VIDEO_SCALE,
     VIDEO_MERGE_VIDEOS,
-    VIDEO_OUTPUT_DIR
+    VIDEO_OUTPUT_DIR,
+    VIDEO_STERIO_TO_MONO
 } Filter;
 
 typedef struct{
@@ -72,7 +74,7 @@ typedef struct{
 struct _thread_args {
     List *list;
     int *flags;
-    char *output_folder;
+    const char *output_folder;
     VideoOptions *video_opt;
 };
 

@@ -138,9 +138,9 @@ String *get_zenity_command(int dlg_type){
     if(!zenity_installed) return NULL;
     switch(dlg_type){
         case DLG_OPEN_MULTISELECT:
-            return String_from("zenity --file-selection --multiple --attach=$(xdotool getactivewindow) ");
+            return String_from("zenity --file-selection --multiple ");
         case DLG_FOLDER:
-            return String_from("zenity --file-selection --directory --attach=$(xdotool getactivewindow) ");
+            return String_from("zenity --file-selection --directory ");
     }
     return NULL;
 }

@@ -36,5 +36,6 @@ void video_generate_command(Video *video);
 void video_init(Video *v , const char *input_file, const char *output_file);
 void video_render_with_intrupt(Video *video,void *data, void (*callback)(VideoProgress *,void *),int *intrupt);
 void video_render(Video *video,void *data, void (*callback)(VideoProgress *,void *));
+void video_sterio_to_mono(Video *video);
 #endif // _VIDEO_H_
 
