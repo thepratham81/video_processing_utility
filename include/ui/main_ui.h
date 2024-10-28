@@ -56,15 +56,17 @@ typedef enum {
     VIDEO_SCALE,
     VIDEO_MERGE_VIDEOS,
     VIDEO_OUTPUT_DIR,
-    VIDEO_STERIO_TO_MONO
+    VIDEO_STERIO_TO_MONO,
+    VIDEO_VOLUME,
+    _VIDEO_OPTION_END
 } Filter;
 
 typedef struct{
-    int check[10];
+    int check[_VIDEO_OPTION_END+1];
     int width;
     int height;
     int volume;
-    char *aspect_ratio;
+    const char *aspect_ratio;
     float brightness;
     float saturation;
     float contrast;

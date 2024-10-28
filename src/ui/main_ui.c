@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-
 #include "file_util.h"
 #include "ui/main_ui.h"
 
@@ -12,6 +11,28 @@ bool _is_task_running = false;
 bool _is_file_dialog_open = false;
 int _intrupt = 0;
 const char *_allowed_file[] = {".mp4", ".mkv", ".avi"};
+const char *aspect_ratio[] = {
+        "16:9",
+        "4:3",
+        "1.85:1",
+        "2.39:1",
+        "3:2",
+        "21:9",
+        "5:4",
+        "1:1",
+        "18:9",
+        "9:16",
+        "32:9",
+        "17:9",
+        "2.76:1",
+        "14:9",
+        "16:10",
+        "2:1",
+        "4:1",
+        "3:1",
+        "1.66:1",
+        "1.43:1"
+};
 
 void callback(VideoProgress *v, void *data) {
     size_t len = str_len(v->file_name);
@@ -70,12 +91,15 @@ void apply_filter(Video *video, int *flags, VideoOptions *video_opt) {
         video_set_brightness(video, video_opt->brightness/100.0f);
     if (flags[VIDEO_CONTARAST])
         video_set_contrast(video, video_opt->contrast);
-    if(flags[VIDEO_STERIO_TO_MONO]){
+    if(flags[VIDEO_STERIO_TO_MONO])
 		video_sterio_to_mono(video);
-    }
-    if(flags[VIDEO_SCALE]){
+    if(flags[VIDEO_SCALE])
         video_resize(video,video_opt->width,video_opt->height); 
-    }
+   if(flags[VIDEO_VOLUME])
+       video_set_volume(video,video_opt->volume);
+   if(flags[VIDEO_ASPECT_RATIO]){
+       video_set_aspect_ratio(video, video_opt->aspect_ratio); 
+   }
 }
 
 // Lot of thing can be go wrong here;
@@ -221,7 +245,9 @@ void btn_process_video_clicked(List *list,const char*output_folder,VideoOptions 
 
 void main_ui(WinData *windata) {
     static List list                  = {NULL, NULL, free};
+    static int selected_aspect_ratio  = 0;
     static VideoOptions video_options = {.angle = 90,.check[VIDEO_OUTPUT_DIR] = 1};
+   
     static char output_dir[PATH_MAX];
 
     SDL_Event evt;
@@ -317,6 +343,23 @@ void main_ui(WinData *windata) {
                 nk_property_float(ctx, "Brightness", -100, &video_options.brightness, 100,1, 1);
             }
 
+            nk_layout_row_dynamic(ctx, 0, 2);
+            nk_checkbox_label(ctx, "Change Volume", &video_options.check[VIDEO_VOLUME]);
+            if (video_options.check[VIDEO_VOLUME]) {
+                nk_property_int(ctx, "Volume", 0, &video_options.volume, 100,1, 1);
+            }
+
+			nk_layout_row_dynamic(ctx, 0, 2); 
+            nk_checkbox_label(ctx, "Change Aspect Ratio", &video_options.check[VIDEO_ASPECT_RATIO]);
+            if(video_options.check[VIDEO_ASPECT_RATIO]){
+    			selected_aspect_ratio = nk_combo(
+        										ctx, 
+                                    			aspect_ratio, NK_LEN(aspect_ratio),
+                                    			selected_aspect_ratio, 25,
+                                    			nk_vec2(nk_widget_width(ctx) ,200)
+    											);
+    			video_options.aspect_ratio = aspect_ratio[selected_aspect_ratio];
+            }
             // Disable video ends
             disable_end(ctx, video_options.check[VIDEO_MERGE_VIDEOS]);
 
@@ -366,4 +409,5 @@ void main_ui(WinData *windata) {
     }
 
     nk_end(ctx);
+
 }

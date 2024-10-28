@@ -84,16 +84,21 @@ void video_change_bitrate(Video *video, size_t bitrate) {
     vector_append(video->extra_option, String_from(temp));
 }
 
-// void video_set_volume(Video *video , size_t volume){
-//     char temp[100] = {0};
-//     snprintf(temp, 100, "volume=%.6f", (float)(volume%100)/(100.0f));
-//     vector_append(video->extra_option,String_from(temp));
-// }
-
-void set_aspect_ratio(Video *video, char *ratio) {
+void video_set_volume(Video *video , size_t volume){
     char temp[100] = {0};
-    snprintf(temp, 100, "setdar=%s", ratio);
+    snprintf(temp, 100, "volume=%.6f", (float)(volume%100)/(100.0f));
+    vector_append(video->extra_option, String_from("-filter:a")); 
+    vector_append(video->extra_option,String_from(temp));
+}
+
+void video_set_aspect_ratio(Video *video, const char *ratio) {
+    char temp[100] = {0};
+    char *sanitise_ratio = str_duplicate(ratio);
+    char *location = strchr(sanitise_ratio,':');
+    if(location) *location = '/';
+    snprintf(temp, 100, "setdar=%s", sanitise_ratio);
     vector_append(video->filters, String_from(temp));
+    free(sanitise_ratio);
 }
 
 void video_set_brightness(Video *video, float value) {
@@ -226,6 +231,11 @@ void _video_render_helper(Video *video,void *data, void (*callback)(VideoProgres
     struct subprocess_s subprocess;
     VideoProgress vp = {0};
     video_generate_command(video);
+    for(size_t i = 0; i < str_len(video->command);i++){
+        printf("%s ",video->command[i]);
+    }
+    puts("");
+    fflush(stdout);
     int result = subprocess_create((const char * const *)video->command,
                                    subprocess_option_search_user_path|subprocess_option_no_window,
                                     &subprocess);

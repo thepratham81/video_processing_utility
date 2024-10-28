@@ -21,7 +21,7 @@ void video_hflip(Video *video);
 
 void video_vflip(Video *video);
 
-void set_aspect_ratio(Video *video, char *ratio);
+void video_set_aspect_ratio(Video *video, const char *ratio);
 
 void video_set_brightness(Video *video, float value);
 void video_set_contrast(Video *video, float value);
@@ -37,5 +37,7 @@ void video_init(Video *v , const char *input_file, const char *output_file);
 void video_render_with_intrupt(Video *video,void *data, void (*callback)(VideoProgress *,void *),int *intrupt);
 void video_render(Video *video,void *data, void (*callback)(VideoProgress *,void *));
 void video_sterio_to_mono(Video *video);
+void video_set_volume(Video *video , size_t volume);
+
 #endif // _VIDEO_H_
 
