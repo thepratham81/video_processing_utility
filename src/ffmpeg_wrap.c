@@ -123,7 +123,7 @@ void video_resize(Video *video, int width, int height) {
     vector_append(video->filters, String_from(temp));
 }
 
-void video_sterio_to_mono(Video *video){
+void video_stereo_to_mono(Video *video){
     vector_append(video->extra_option,String_from("-ac"));
     vector_append(video->extra_option,String_from("1")); 
 }

@@ -91,8 +91,8 @@ void apply_filter(Video *video, int *flags, VideoOptions *video_opt) {
         video_set_brightness(video, video_opt->brightness/100.0f);
     if (flags[VIDEO_CONTARAST])
         video_set_contrast(video, video_opt->contrast);
-    if(flags[VIDEO_STERIO_TO_MONO])
-		video_sterio_to_mono(video);
+    if(flags[VIDEO_STEREO_TO_MONO])
+		video_stereo_to_mono(video);
     if(flags[VIDEO_SCALE])
         video_resize(video,video_opt->width,video_opt->height); 
    if(flags[VIDEO_VOLUME])
@@ -327,7 +327,7 @@ void main_ui(WinData *windata) {
             nk_layout_row_dynamic(ctx, 0, 1);
             nk_checkbox_label(ctx, "Flip horizontally", &video_options.check[VIDEO_FIP_H]);
             nk_checkbox_label(ctx, "Flip vertically", &video_options.check[VIDEO_FIP_V]);
-            nk_checkbox_label(ctx, "Sterio to mono", &video_options.check[VIDEO_STERIO_TO_MONO]);
+            nk_checkbox_label(ctx, "Stereo to mono", &video_options.check[VIDEO_STEREO_TO_MONO]);
             //nk_checkbox_label(ctx, "Change aspect ratio", &video_options.check[VIDEO_ASPECT_RATIO]);
 
             nk_checkbox_label(ctx, "Scale Video", &video_options.check[VIDEO_SCALE]);
