@@ -52,5 +52,8 @@ after building you can run :-
 
 # Library used
 
-[subprocess.h](https://github.com/sheredom/subprocess.h) for creating subprocess.
-[Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) for creating GUI.
+[subprocess.h](https://github.com/sheredom/subprocess.h) for creating subprocess.<br>
+[Nuklear](https://github.com/Immediate-Mode-UI/Nuklear) for creating GUI.<br>
+[stb](https://github.com/nothings/stb) single header library.<br>
+[ffmpeg](https://www.ffmpeg.org) for video processing.<br>
+
