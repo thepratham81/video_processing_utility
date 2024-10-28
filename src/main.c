@@ -30,7 +30,7 @@
 #include "ui/main_ui.h"
 
 #define WINDOW_WIDTH 1000
-#define WINDOW_HEIGHT 650
+#define WINDOW_HEIGHT 670
 #define TITLE "VPU"
 
 struct Theme {

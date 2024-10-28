@@ -273,10 +273,10 @@ void main_ui(WinData *windata) {
                  NK_WINDOW_NO_SCROLLBAR)) {
 
         // Input files
-        nk_layout_row_dynamic(ctx, 450, 2);
+        nk_layout_row_dynamic(ctx, 470, 2);
         if (nk_group_begin(ctx, "Files", 0)) {
             // Group file
-            nk_layout_row_dynamic(ctx, 380, 1);
+            nk_layout_row_dynamic(ctx, 400, 1);
             if (nk_group_begin(ctx, "Darg & Drop File Here",
                                NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
                 // Add files
