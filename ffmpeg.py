@@ -1,4 +1,5 @@
 import os
+import math
 import signal
 import subprocess
 
@@ -36,16 +37,28 @@ class Video:
         self.filter_command.append("vflip")
 
     def rotate(self, angle):
-        pass
+        angle = float(angle)
+        if angle == 90:
+            self.filter_command.append("transpose=1")
+        elif angle == 180:
+            self.filter_command.append("transpose=2")
+        elif angle == 270:
+            self.filter_command.append("transpose=3")
+        else:
+            rad = mathmath.radians(degree)
+            self.filter_command.append("rotate=%.6f"%rad)
+
+
+
 
     def set_brightness(self, val):
-        pass
+        self.filter_command.append("eq=brightness=%.6f"%float(val))
 
     def set_contrast(self, val):
-        pass
+        self.filter_command.append("eq=contrast=%.6f"%float(val))
 
     def set_saturation(self, val):
-        pass
+        self.filter_command.append("q=saturation=%.6f"%float(val))
 
     def scale(self, width, height):
         self.filter_command.append("scale=%d:%d" % (width, height))
@@ -120,3 +133,8 @@ class Video:
 
     def get_ffmpeg_command(self):
         return self.__ffmpeg_command
+
+    def stop_rendring(self):
+        if self.__process:
+            self.__process.kill()
+
