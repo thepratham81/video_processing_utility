@@ -1,6 +1,19 @@
 import threading
 from datetime import datetime
 import os
+
+os.environ["KIVY_NO_FILELOG"] = "1"
+os.environ["KIVY_NO_CONSOLELOG"] = "0"
+os.environ['KIVY_HOME'] = os.getcwd()
+
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,disable_multitouch')
+Config.set('graphics', 'width', 900)
+Config.set('graphics', 'height', 600)
+Config.set('graphics', 'resizable', False)
+Config.write()
+
+
 from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -18,6 +31,7 @@ from plyer import filechooser
 
 import ffmpeg
 from cspinner import CSpinner
+
 
 kv = """
 <CMDBoxLayout@MDBoxLayout>:
@@ -103,6 +117,7 @@ kv = """
         GridLayout:
             cols: 1
             size_hint_y: None
+            size_hint_x: 0.5
             row_default_height: '48dp'
             row_force_default: True
             height: self.minimum_height
