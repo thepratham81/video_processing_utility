@@ -410,7 +410,7 @@ class AppLayout(MDBoxLayout):
         if self.ids.chk_volume.active:
             self.__current_processing_video.set_volume(float(self.ids.spinner_volume.value)/100)
 
-        if self.ids.chk_flip_h.active:
+        if self.ids.chk_flip_v.active:
             self.__current_processing_video.vflip()
 
         if self.ids.chk_flip_h.active:
