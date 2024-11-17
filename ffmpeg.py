@@ -67,8 +67,8 @@ class Video:
         self.filter_command.append("setdar=%s" % ratio)
 
     def set_volume(self, volume):
-        sanitise_volume = (volume % 100) / 100
-        self.extra_command.append("volume=%.6f" % sanitise_volume)
+        self.extra_command.append("-af")
+        self.extra_command.append("volume=%.6f" % volume)
 
     def stereo_to_mono(self):
         self.extra_command.extend(["-ac", "1"])
@@ -121,15 +121,15 @@ class Video:
         )
         print(self.__ffmpeg_command)
         if callback == None:
-            callback = lambda _ : None
+            callback = lambda _,__,___ : None
        
         while self.__process.poll() ==  None:
             line = self.__process.stderr.readline().strip()
             if line:
                 progress = self.__get_progress(line, video_duration)
                 if progress!=None:
-                	callback(progress)
-        callback(100)
+                	callback(progress,self.clip,output_file)
+        callback(100,self.clip,output_file)
 
     def get_ffmpeg_command(self):
         return self.__ffmpeg_command
