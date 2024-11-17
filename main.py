@@ -1,15 +1,23 @@
 import threading
-
+from datetime import datetime
+import os
+from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.lang import Builder
-from kivy.properties import StringProperty, ObjectProperty, BooleanProperty, NumericProperty
+from kivy.properties import (
+    StringProperty,
+    ObjectProperty,
+    BooleanProperty,
+    NumericProperty,
+)
 from kivy.core.window import Window
 from functools import partial
 from plyer import filechooser
 
 import ffmpeg
+from cspinner import CSpinner
 
 kv = """
 <CMDBoxLayout@MDBoxLayout>:
@@ -23,6 +31,7 @@ kv = """
     MDCheckbox:
         id:chk
         adaptive_width: True
+        active:root.active
     MDLabel:
         text: root.text
         adaptive_height: True
@@ -33,7 +42,6 @@ kv = """
     MDLabel:
         text:root.text
     MDIconButton:
-        id:asd
         icon: "delete"
         size_hint_x:None
         width:dp(48)
@@ -58,15 +66,28 @@ kv = """
     orientation:"vertical"
     spacing: dp(10)
     padding: dp(10)
+    MDLabel:
+        id:lbl_progress
+        adaptive_height:True
+        height:self.height * self.opacity
+        opacity:0
+
     CMDBoxLayout:
         CMDBoxLayout:
             orientation:"vertical"
             MDLabel:
                 text: "Drag and Drop File Here"
+                adaptive_height:True
                 size_hint_y:None
-                height : dp(100)
             FileList:
                 id: file_list
+                canvas.before:
+                    Color:
+                        rgba: .9, .9, .9, 1
+                    Line:
+                        width: 1
+                        rectangle: self.x, self.y, self.width, self.height
+
             CMDBoxLayout:
                 size_hint_y: None
                 height: dp(48)
@@ -86,19 +107,22 @@ kv = """
             row_force_default: True
             height: self.minimum_height
             pos_hint: {'top': 1, 'left': 1}  # Start from the top-left corner
-            CheckItem:
-                id:chk_merge
-                text: "Merge Video"
+            # CheckItem:
+            #     id:chk_merge
+            #     text: "Merge Video"
             CMDBoxLayout:
                 CheckItem:
                     id:chk_rotate
                     text: "Rotate Video"
-                MDDropDownItem:
-                    id: drop_item_rotate
-                    disabled: not chk_rotate.active
-                    text: "90"
-                    on_release: root.rotate_menu.open()
-
+                CSpinner:
+                    id:spinner_rotate
+                    value:90
+                    min:-360
+                    max: 360
+                    size_hint_x:None
+                    width:dp(58)
+                    disabled:not chk_rotate.active
+                    opacity:int(chk_rotate.active)
 
             CheckItem:
                 id:chk_flip_h
@@ -109,16 +133,60 @@ kv = """
             CheckItem:
                 id:chk_stereo_to_mono
                 text: "Stereo to mono"
-            CheckItem:
-                id:chk_video
-                text: "Scale Video"
 
-            CheckItem:
-                id:chk_brightness
-                text:"Change Brightnedd"
-            CheckItem:
-                id:chk_volume
-                text: "Change Volume"
+
+            CMDBoxLayout:
+                CheckItem:
+                    id:chk_scale_video
+                    text: "Scale Video"
+    
+                CSpinner:
+                    id:spinner_width
+                    value:1920
+                    min:float("-inf")
+                    max:float("inf")
+                    size_hint_x:None
+                    width:dp(58)
+                    disabled:not chk_scale_video.active
+                    opacity:int(chk_scale_video.active)
+
+                CSpinner:
+                    id:spinner_height
+                    value:1080
+                    min:float("-inf")
+                    max:float("inf")
+                    size_hint_x:None
+                    width:dp(58)
+                    disabled:not chk_scale_video.active
+                    opacity:int(chk_scale_video.active)
+
+            CMDBoxLayout:
+                CheckItem:
+                    id:chk_brightness
+                    text:"Change Brightness"
+                CSpinner:
+                    id:spinner_brightness
+                    value:0
+                    min:-100
+                    max: 100
+                    size_hint_x:None
+                    width:dp(58)
+                    disabled:not chk_brightness.active
+                    opacity:int(chk_brightness.active)
+            CMDBoxLayout:
+                CheckItem:
+                    id:chk_volume
+                    text: "Change Volume"
+                CSpinner:
+                    id:spinner_volume
+                    value:100
+                    min:0
+                    max: 100
+                    size_hint_x:None
+                    width:dp(58)
+                    disabled:not chk_volume.active
+                    opacity:int(chk_volume.active)
+
             CMDBoxLayout:
                 CheckItem:
                     id:chk_aspect_ratio
@@ -126,13 +194,19 @@ kv = """
                 MDDropDownItem:
                     id: drop_item_aspect_ratio
                     disabled: not chk_aspect_ratio.active
+                    opacity:int(chk_aspect_ratio.active)
                     text: "16:9"
                     on_release: root.aspect_ratio_menu.open()
 
+    CheckItem:
+        id: chk_output_dir
+        text: "Output Dir same as input dir"
+        active: True
 
     CMDBoxLayout:
         adaptive_height: True
         height: dp(32)
+        disabled:chk_output_dir.active
         MDTextFieldRect:
             id:txt_output_folder
             size_hint_x: 1
@@ -149,9 +223,11 @@ kv = """
         text:"Process Video"
         on_release: root.btn_process_video_clicked()
         size_hint_x: 1
+        disabled: file_list.total_items == 0
 
 
 """
+
 Builder.load_string(kv)
 
 
@@ -179,8 +255,8 @@ class FileList(MDBoxLayout):
             if i["text"] == index:
                 self.ids.rv.data.pop(idx)
                 break
-        total_items = len(self.ids.rv.data)
         self.ids.rv.refresh_from_data()
+        self.total_items = len(self.ids.rv.data)
 
     def on_file_drop(self, window, file_path, *args):
         video_file = file_path.decode("utf-8")
@@ -198,17 +274,16 @@ class FileList(MDBoxLayout):
         )
 
     def file_drop_end(self, *args, **kwargs):
-        total_items = len(self.ids.rv.data)
         self.ids.rv.refresh_from_data()
+        self.total_items = len(self.ids.rv.data)
 
     def clear_file_list(self):
         self.ids.rv.data = []
-        total_items = len(self.ids.rv.data)
         self.ids.rv.refresh_from_data()
+        self.total_items = len(self.ids.rv.data)
 
     def get_all_file_name(self):
         return [i["text"] for i in self.ids.rv.data]
-
 
     def add_files(self, files):
         for file_path in files:
@@ -219,8 +294,9 @@ class FileList(MDBoxLayout):
                 }
             )
 
-        total_items = len(self.ids.rv.data)
         self.ids.rv.refresh_from_data()
+        self.total_items = len(self.ids.rv.data)
+
 
 
 class AppLayout(MDBoxLayout):
@@ -228,23 +304,6 @@ class AppLayout(MDBoxLayout):
         super(AppLayout, self).__init__(*args, **kwargs)
         self.__stop_rendring = False
         self.__current_processing_video = None
-        self.rotate_menu_item = [
-            {
-                "viewClass": "MDLabel",
-                "on_release": lambda x=str(angle): self.set_item(
-                    x, self.ids.drop_item_rotate, self.rotate_menu
-                ),
-                "text": str(angle),
-            }
-            for angle in [90, 180, 270]
-        ]
-        self.rotate_menu = MDDropdownMenu(
-            caller=self.ids.drop_item_rotate,
-            items=self.rotate_menu_item,
-            position="bottom",
-            width_mult=4,
-        )
-
         self.aspect_ratio_items = [
             {
                 "viewClass": "MDLabel",
@@ -283,12 +342,17 @@ class AppLayout(MDBoxLayout):
             width_mult=4,
         )
 
-        self.rotate_menu.bind()
         self.aspect_ratio_menu.bind()
 
-    def progress_callback(self, progress):
+    def progress_callback(self, progress,input_file_name , output_file_name):
+        def hide_progress():
+            self.ids.lbl_progress.opacity = 0
+
+        self.ids.lbl_progress.text = "%.2f %s" % (progress,output_file_name)
         if progress == 100:
             self.ids.btn_process.text = "Process Video"
+            self.ids.lbl_progress.text = ""
+            Clock.schedule_once(lambda dt:hide_progress())
         else:
             self.ids.btn_process.text = "Stop Processing"
 
@@ -319,10 +383,16 @@ class AppLayout(MDBoxLayout):
             self.__current_processing_video.set_aspect_ratio(
                 self.ids.drop_item_aspect_ratio.text.replace(":", "/")
             )
-
+        if self.ids.chk_scale_video.active:
+            self.__current_processing_video.scale(self.ids.spinner_width.value,
+                                                  self.ids.spinner_height.value)
         if self.ids.chk_brightness.active:
-            print("Not implemented yet..")
-            return
+            self.__current_processing_video.set_brightness(
+                float(self.ids.spinner_brightness.value) / 100
+            )
+
+        if self.ids.chk_volume.active:
+            self.__current_processing_video.set_volume(float(self.ids.spinner_volume.value)/100)
 
         if self.ids.chk_flip_h.active:
             self.__current_processing_video.vflip()
@@ -331,19 +401,45 @@ class AppLayout(MDBoxLayout):
             self.__current_processing_video.hflip()
 
         if self.ids.chk_rotate.active:
-            self.__current_processing_video.rotate(int(self.ids.drop_item_rotate.text))
+            self.__current_processing_video.rotate(float(self.ids.spinner_rotate.value))
 
         if self.ids.chk_stereo_to_mono.active:
             self.__current_processing_video.stereo_to_mono()
+
+    def __generate_file_name(self, file_path):
+        # file_name.ext -> file_name_Processed_%Y-%m-%d_%H.%M.%S
+
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%Y-%m-%d_%H.%M.%S")
+
+        _, file_name = os.path.split(file_path)
+        file_name_without_ext, ext = os.path.splitext(file_name)
+
+        return f"{file_name_without_ext}_Processed_{formatted_time}{ext}"
 
     def process_video(self):
         for video in self.ids.file_list.get_all_file_name():
             if self.__stop_rendring:
                 break
 
-            self.__current_processing_video = Video(video)
+            self.__current_processing_video = ffmpeg.Video(video)
             self.apply_filters()
 
+            dir, file_name = os.path.split(video)
+            file_name = self.__generate_file_name(file_name)
+            output_path = None
+            if self.ids.chk_output_dir.active:
+                output_path = os.path.join(dir, file_name)
+            else:
+                if os.path.isdir(self.ids.txt_output_folder.text):
+                    output_path = os.path.join(
+                        self.ids.txt_output_folder.text, file_name
+                    )
+
+            if output_path:
+                self.__current_processing_video.render(
+                    output_path, callback=self.progress_callback
+                )
         self.ids.btn_process.text = "Process Video"
 
     def btn_process_video_clicked(self):
@@ -354,6 +450,7 @@ class AppLayout(MDBoxLayout):
                 self.__current_processing_video.stop_rendring()
         else:
             self.__stop_rendring = False
+            self.ids.lbl_progress.opacity = 1
             t = threading.Thread(target=self.process_video)
             t.start()
             self.ids.btn_process.text = "Stop All"
