@@ -113,6 +113,7 @@ kv = """
                     text:"Remove All"
                     on_release : file_list.clear_file_list()
                     size_hint_x: 1
+                    disabled:file_list.total_items == 0
             
         GridLayout:
             cols: 1
