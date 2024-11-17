@@ -1,3 +1,11 @@
+# Video Processing Utility
+VPU - video processing utility
+
+This tool should be very close to an all-in-one 
+video editing tool for simple tasks.
+
+You should be able to process videos quickly.
+
 # Screenshot
 
 ![Screenshot](screenshots/1.png)
