@@ -41,11 +41,11 @@ class Video:
         if angle == 90:
             self.filter_command.append("transpose=1")
         elif angle == 180:
-            self.filter_command.append("transpose=2")
+            self.filter_command.append("transpose=1,transpose=1")
         elif angle == 270:
-            self.filter_command.append("transpose=3")
+            self.filter_command.append("transpose=1,transpose=1,transpose=1")
         else:
-            rad = mathmath.radians(degree)
+            rad = math.radians(angle)
             self.filter_command.append("rotate=%.6f"%rad)
 
 
