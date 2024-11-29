@@ -8,8 +8,8 @@ os.environ['KIVY_HOME'] = os.getcwd()
 
 from kivy.config import Config
 Config.set('input', 'mouse', 'mouse,disable_multitouch')
-Config.set('graphics', 'width', 900)
-Config.set('graphics', 'height', 600)
+Config.set('graphics', 'width', 1000)
+Config.set('graphics', 'height', 700)
 Config.set('graphics', 'resizable', False)
 Config.write()
 
@@ -18,6 +18,9 @@ from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.button import MDFlatButton
+from kivymd.uix.behaviors.toggle_behavior import MDToggleButton
+
 from kivy.lang import Builder
 from kivy.properties import (
     StringProperty,
@@ -31,11 +34,33 @@ from plyer import filechooser
 
 import ffmpeg
 from cspinner import CSpinner
+from kivymd.uix.tooltip.tooltip import MDTooltip
+from kivy.core.text import LabelBase
+LabelBase.register(name="Iconfont", fn_regular=os.path.join("asset","icon.ttf"))
 
 
 kv = """
+#:import os os
+#: import ew kivy.uix.effectwidget
+
+# https://gist.github.com/kived/3f6a638fc4827957f933463954524de5
+<Separator@Widget>:
+    rgba: 0, 0, 0, 0
+    canvas:
+        Color:
+            rgba: self.rgba
+        Rectangle:
+            pos: self.pos
+            size: self.size
 <CMDBoxLayout@MDBoxLayout>:
     spacing: dp(10)
+<CToggleButton@MyToggleButton>:
+    size_hint:None,None
+    font_size:"40sp"
+    size:dp(32),dp(32)
+    rounded_button:True
+    font_name:"Iconfont"
+    tooltip_font_style:"Subtitle1"
 
 <CheckItem>
     # adaptive_height: True
@@ -115,30 +140,70 @@ kv = """
                     size_hint_x: 1
                     disabled:file_list.total_items == 0
             
-        GridLayout:
+        MDGridLayout:
             cols: 1
-            size_hint_y: None
-            size_hint_x: 0.5
+            # size_hint_y: None
+            # size_hint_x: 0.6
             row_default_height: '48dp'
             row_force_default: True
-            height: self.minimum_height
+            adaptive_height:True
             pos_hint: {'top': 1, 'left': 1}  # Start from the top-left corner
             # CheckItem:
             #     id:chk_merge
             #     text: "Merge Video"
             CMDBoxLayout:
+                id:layout_rotate
+                value:90
+                # orientation: "vertical" if chk_rotate.active else "horizontal"
                 CheckItem:
                     id:chk_rotate
                     text: "Rotate Video"
+            Separator:
+            MDBoxLayout:
+                disabled:not chk_rotate.active
+                adaptive_width:True
+                adaptive_height:True
+                CToggleButton:
+                    id:btn_rotate_90
+                    state:"down"
+                    text:"\ue900"
+                    group:"rotate"
+                    tooltip_text:"Rotate 90°"
+                    on_state: if self.state == "down": layout_rotate.value = 90
+                CToggleButton:
+                    id:btn_rotate_180
+                    text:"\ue901"
+                    group:"rotate"
+                    tooltip_text:"Rotate 180°"
+                    on_state: if self.state == "down": layout_rotate.value = 180
+                CToggleButton:
+                    id:btn_rotate_270
+                    text:"\ue902"
+                    group:"rotate"
+                    tooltip_text:"Rotate 270°"
+                    on_state: if self.state == "down": layout_rotate.value = 270
+
+                CToggleButton:
+                    id:btn_custom_rotate
+                    text:"\ue903"
+                    tooltip_text:"Custom rotation"
+                    group:"rotate"
+                    on_state: if self.state == "down": layout_rotate.value = spinner_rotate.value
+                Separator:
+                    size_hint_x:None
+                    width:dp(10)
                 CSpinner:
                     id:spinner_rotate
                     value:90
                     min:-360
                     max: 360
-                    size_hint_x:None
+                    size_hint:None,None
                     width:dp(58)
-                    disabled:not chk_rotate.active
-                    opacity:int(chk_rotate.active)
+                    # height:dp(48)
+                    pos:btn_custom_rotate.pos
+                    disabled:btn_custom_rotate.state!='down'
+                    opacity:1 if btn_custom_rotate.state == 'down' and chk_rotate.active else 0
+                    pos_hint: {"center_y":0.5}  # Start from the top-left corner
 
             CheckItem:
                 id:chk_flip_h
@@ -246,6 +311,11 @@ kv = """
 
 Builder.load_string(kv)
 
+# https://kivymd.readthedocs.io/en/1.1.1/behaviors/togglebutton/index.html
+class MyToggleButton(MDFlatButton, MDToggleButton,MDTooltip):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.background_down = self.theme_cls.primary_color
 
 class CheckItem(MDBoxLayout):
     text = StringProperty()
@@ -417,7 +487,11 @@ class AppLayout(MDBoxLayout):
             self.__current_processing_video.hflip()
 
         if self.ids.chk_rotate.active:
-            self.__current_processing_video.rotate(float(self.ids.spinner_rotate.value))
+            angle = self.ids.layout_rotate.value
+            if self.ids.btn_custom_rotate.state == "down":
+                angle = self.ids.spinner_rotate.value
+            print(angle)
+            self.__current_processing_video.rotate(float(angle))
 
         if self.ids.chk_stereo_to_mono.active:
             self.__current_processing_video.stereo_to_mono()
