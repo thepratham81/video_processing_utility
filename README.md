@@ -9,6 +9,11 @@ You should be able to process videos quickly.
 # Screenshot
 
 ![Screenshot](screenshots/1.png)
+# Build Exe
+```
+python build.py
+```
+this will create VPU_EXE folder containing main.exe file
 
 # Run
 
