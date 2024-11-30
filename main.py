@@ -36,10 +36,20 @@ import ffmpeg
 from cspinner import CSpinner
 from kivymd.uix.tooltip.tooltip import MDTooltip
 from kivy.core.text import LabelBase
-LabelBase.register(name="Iconfont", fn_regular=os.path.join("asset","icon.ttf"))
 
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
-Builder.load_file("ui.kv")
+    return os.path.join(base_path, relative_path)
+
+LabelBase.register(name="Iconfont", fn_regular=resource_path(os.path.join("asset","icon.ttf")))
+
+Builder.load_file(resource_path("ui.kv"))
 
 # https://kivymd.readthedocs.io/en/1.1.1/behaviors/togglebutton/index.html
 class MyToggleButton(MDFlatButton, MDToggleButton,MDTooltip):
