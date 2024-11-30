@@ -129,5 +129,8 @@ elif os_name == "Linux":
         extract_file_from_tarxz(
             "ffmpeg.tar.xz", "ffmpeg-7.0.2-amd64-static/ffprobe", ffmpeg_folder
         )
-build_executable()
-
+try:
+    build_executable()
+    input("Build successfull. Press any key to exit...")
+except:
+    input("Build unsuccessfull. Press any key to exit...")
