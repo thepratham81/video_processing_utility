@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.spec
+
+# Installer logs
+*.log
+
+# Virtual environments
+venv/
+.env/
+env/
+
+# PyInstaller cache
+*.manifest
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Other
+*.tmp
+*.bak
+.DS_Store
+
