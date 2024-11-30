@@ -6,7 +6,6 @@ __pycache__/
 # Distribution / packaging
 dist/
 build/
-*.spec
 
 # Installer logs
 *.log
