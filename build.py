@@ -26,7 +26,7 @@ def build_executable():
         os.path.dirname(sys.executable),
         "pyinstaller" if os_name != "Windows" else "pyinstaller.exe",
     )
-    executable_name = "main" + "" if os_name != "Windows" else ".exe" 
+    executable_name = "main" + ("" if os_name != "Windows" else ".exe")
     executable_path = os.path.join("dist",executable_name)
     if os.path.exists(executable_path):
         os.remove(executable_path)
