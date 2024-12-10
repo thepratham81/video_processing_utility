@@ -22,11 +22,18 @@ def install_dependencies():
 
 
 def build_executable():
-    pyinstaller_path = os.path.join(
-        os.path.dirname(sys.executable),
-        "pyinstaller" if os_name != "Windows" else "pyinstaller.exe",
-    )
-    executable_name = "main" + ("" if os_name != "Windows" else ".exe")
+    if os_name == "Windows":
+        pyinstaller_exe = "pyinstaller.exe"
+        executable_name = "main.exe"
+    else:
+        pyinstaller_exe = "pyinstaller"
+        executable_name = "main"
+
+    pyinstaller_path = os.path.join(os.path.dirname(sys.executable),pyinstaller_exe)
+
+    if os_name == "Windows" and not os.path.exists(pyinstaller_path):
+        pyinstaller_path = os.path.join(os.path(sys.executable) , "Scripts" , pyinstaller_exe)
+
     executable_path = os.path.join("dist",executable_name)
     if os.path.exists(executable_path):
         os.remove(executable_path)
