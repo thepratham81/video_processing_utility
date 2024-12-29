@@ -201,19 +201,6 @@
 
             CMDBoxLayout:
                 CheckItem:
-                    id:chk_brightness
-                    text:"Change Brightness"
-                CSpinner:
-                    id:spinner_brightness
-                    value:0
-                    min:-100
-                    max: 100
-                    size_hint_x:None
-                    width:dp(58)
-                    disabled:not chk_brightness.active
-                    opacity:int(chk_brightness.active)
-            CMDBoxLayout:
-                CheckItem:
                     id:chk_volume
                     text: "Change Volume"
                 CSpinner:

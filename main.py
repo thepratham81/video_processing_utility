@@ -212,10 +212,6 @@ class AppLayout(MDBoxLayout):
         if self.ids.chk_scale_video.active:
             self.__current_processing_video.scale(self.ids.spinner_width.value,
                                                   self.ids.spinner_height.value)
-        if self.ids.chk_brightness.active:
-            self.__current_processing_video.set_brightness(
-                float(self.ids.spinner_brightness.value) / 100
-            )
 
         if self.ids.chk_volume.active:
             self.__current_processing_video.set_volume(float(self.ids.spinner_volume.value)/100)
