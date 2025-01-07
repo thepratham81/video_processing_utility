@@ -218,8 +218,9 @@
                 height :dp(150)
                 opacity: int(chk_aspect_ratio.active)
                 AspectRatioWidget:
-                    aspect_width : 16
-                    aspect_height: 9
+                    id: aspect_video
+                    aspect_width : video_info.coded_width if video_info.coded_width >0 else 1 
+                    aspect_height: video_info.coded_height if video_info.coded_height>0 else 1
                     size_hint : None, None
                     size: dp(150),dp(150)
                 AspectRatioWidget:

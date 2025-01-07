@@ -244,6 +244,10 @@ class VideoInfoWidget(MDBoxLayout):
         def change_thumbnail_image(res):
             self.ids.video_thumbnail.source = res
 
+        def change_dimensions(width , height):
+            self.coded_width = width
+            self.coded_height = height
+
         output = ffmpeg.get_video_info(video)
         if output is None:
             return
@@ -256,9 +260,15 @@ class VideoInfoWidget(MDBoxLayout):
 
         for stream in output['streams']:
             codec_name = stream['codec_type']
-            if codec_name == 'video' and stream['codec_name']!='png':
-                self.coded_width = stream['width']
-                self.coded_height = stream['height']
+            if (
+                codec_name == "video"
+                and stream["codec_name"] != "png"
+                and stream["width"] > 0
+                and stream["height"] > 0
+            ):
+                width = stream['width']
+                height = stream['height']
+                Clock.schedule_once(lambda dt:change_dimensions(width,height))
 
             if not thumbnail_found and stream['codec_name'] == "png":
                 res = ffmpeg.get_thumbnail(video, stream['index'])
@@ -307,8 +317,6 @@ class AppLayout(MDBoxLayout):
             for ratio in [
                 "16:9",
                 "4:3",
-                "1.85:1",
-                "2.39:1",
                 "3:2",
                 "21:9",
                 "5:4",
@@ -316,21 +324,16 @@ class AppLayout(MDBoxLayout):
                 "18:9",
                 "9:16",
                 "32:9",
-                "17:9",
-                "2.76:1",
-                "14:9",
                 "16:10",
                 "2:1",
                 "4:1",
                 "3:1",
-                "1.66:1",
-                "1.43:1",
             ]
         ]
         self.aspect_ratio_menu = MDDropdownMenu(
             caller=self.ids.drop_item_aspect_ratio,
             items=self.aspect_ratio_items,
-            position="bottom",
+            position="top",
             width_mult=4,
         )
 
