@@ -149,9 +149,9 @@ class RotatedImage(MDBoxLayout):
         pil_image = PILImage.open(self.source).convert("RGBA")
         
         if self.flip_h:
-            pil_image = ImageOps.mirror(pil_image)
+            pil_image = pil_image.transpose(PILImage.FLIP_LEFT_RIGHT)
         if self.flip_v:
-            pil_image = ImageOps.flip(pil_image)
+            pil_image = pil_image.transpose(PILImage.FLIP_TOP_BOTTOM)
 
         pil_image = pil_image.rotate(-self.angle, expand=True, resample=PILImage.BICUBIC)
         
@@ -239,11 +239,11 @@ class VideoInfoWidget(MDBoxLayout):
 
     def on_flip_h(self,instance,value):
         if len(self.video) != 0:
-            self.flip_h = True
+            self.flip_h = value
 
     def on_flip_v(self,instance,value):
         if len(self.video) != 0:
-            selfflip_v = True
+            self.flip_v = value
 
     def __helper(self, video):
         def change_thumbnail_image(res):
