@@ -2,6 +2,9 @@ import os
 import math
 import signal
 import subprocess
+import json
+from io import BytesIO
+import tempfile
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,6 +17,64 @@ FFPROBE_PATH = os.path.join(
     base_path, "ffmpeg", "ffprobe.exe" if os.name == "nt" else "ffprobe"
 )
 
+def get_thumbnail(file_path, index):
+    # Create a temporary file to store the thumbnail
+    with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as temp_file:
+        temp_file_path = temp_file.name
+
+    command = [
+        FFMPEG_PATH, "-i", file_path, "-map", f"0:{index}", "-c", "png", "-f", "image2pipe", "-"
+    ]
+    
+    try:
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+        # Write the image data to the temporary file
+        with open(temp_file_path, 'wb') as temp_file:
+            temp_file.write(result.stdout)
+
+        return temp_file_path
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred: {e.stderr.decode()}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return None
+
+def generate_thumbnail(file_path, time):
+    with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as temp_file:
+        temp_file_path = temp_file.name
+
+    command = [
+        FFMPEG_PATH, "-i", file_path, "-ss", str(time), "-vframes", "1", "-c", "png", temp_file_path
+    ]
+    
+    try:
+        subprocess.run(command, check=True)
+        return temp_file_path
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred: {e.stderr.decode()}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return None
+
+def get_video_info( file_path):
+    command = [
+        FFPROBE_PATH,
+        "-v",
+        "error",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        file_path,
+    ]
+    output = subprocess.run(command, capture_output=True, text=True).stdout
+    if output:
+        return json.loads(output)
+    return None
 
 class Video:
     def __init__(self, input_file):
@@ -82,6 +143,7 @@ class Video:
             except:
                 return None
         return None
+
 
     def __get_video_duration(self, file_path):
         output = subprocess.run(
