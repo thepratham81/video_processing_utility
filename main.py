@@ -263,6 +263,7 @@ class VideoInfoWidget(MDBoxLayout):
 
         thumbnail_found = False
 
+
         for stream in output['streams']:
             codec_name = stream['codec_type']
             if (
@@ -281,7 +282,7 @@ class VideoInfoWidget(MDBoxLayout):
                 Clock.schedule_once(lambda dt:change_thumbnail_image(res))
 
         if not thumbnail_found:
-            res = ffmpeg.generate_thumbnail(video,1)
+            res = ffmpeg.generate_thumbnail(video,1,self.ids.video_thumbnail.height)
             if res:
                 Clock.schedule_once(lambda dt:change_thumbnail_image(res))
 
