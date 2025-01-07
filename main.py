@@ -69,36 +69,39 @@ class AspectRatioWidget(Widget):
         self.bind(aspect_width=self.update_canvas)
         self.bind(aspect_height=self.update_canvas)
 
-
     def update_canvas(self, *args):
         self.canvas.clear()
 
         border_thickness = 1
 
-        width = self.width  - 2*border_thickness
-        height = self.height  - 2*border_thickness
- 
+        width = self.width -  2*border_thickness
+        height = self.height -  2*border_thickness
 
         box_width = width
-        box_height = width  * (self.aspect_height/self.aspect_width)
-        if box_height > height :
-            box_height = height 
-            box_width = height  * (self.aspect_width/self.aspect_height)
+        box_height = width * (self.aspect_height / self.aspect_width)
+        if box_height > height:
+            box_height = height
+            box_width = height * (self.aspect_width / self.aspect_height)
 
-        x = (width  - box_width) / 2
-        y = (height  - box_height) / 2
+        x = (width - box_width) / 2 +  border_thickness
+        y = (height - box_height) / 2 +  border_thickness
+
         with self.canvas:
-            # border color
-            Color(1,1,1,1)
-            Line(rectangle=(self.pos[0], self.pos[1],width , height ), width=border_thickness)
 
-            # background color
-            Color(0,0,0,1)
-            Rectangle(pos=self.pos, size=(width , height ))
+            # border
+            Color(1, 1, 1, 1)
+            Rectangle(pos=self.pos , size=(self.width , self.height))
 
-            # inner rectengle color
-            Color(1,1,1,1)
-            Rectangle(pos=(self.pos[0]+x, self.pos[1]+y), size=(box_width, box_height))
+
+            # background
+            Color(0, 0, 0, 1)
+            Rectangle(pos=(self.pos[0] + border_thickness, self.pos[1] + border_thickness), size=(width, height))
+
+            # inner rectangle
+            Color(1, 1, 1, 1)
+            Rectangle(pos=(self.pos[0] + x, self.pos[1] + y), size=(box_width, box_height))
+
+
 
 
 
