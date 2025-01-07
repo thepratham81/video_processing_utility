@@ -42,12 +42,13 @@ def get_thumbnail(file_path, index):
         print(f"Unexpected error: {str(e)}")
         return None
 
-def generate_thumbnail(file_path, time):
+
+def generate_thumbnail(file_path, time, height=-1):
     with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as temp_file:
         temp_file_path = temp_file.name
 
     command = [
-        FFMPEG_PATH, "-i", file_path, "-ss", str(time), "-vframes", "1", "-c", "png", temp_file_path
+        FFMPEG_PATH, "-i", file_path, "-ss", str(time), "-vframes", "1", "-vf", f"scale=-1:{height}", "-c:v", "png", temp_file_path
     ]
     
     try:
