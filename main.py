@@ -2,14 +2,14 @@ import threading
 from datetime import datetime
 import os
 
-os.environ["KIVY_NO_FILELOG"] = "1"
-os.environ["KIVY_NO_CONSOLELOG"] = "0"
+# os.environ["KIVY_NO_FILELOG"] = "1"
+# os.environ["KIVY_NO_CONSOLELOG"] = "0"
 os.environ['KIVY_HOME'] = os.getcwd()
 
 from kivy.config import Config
 Config.set('input', 'mouse', 'mouse,disable_multitouch')
 Config.set('graphics', 'width', 1000)
-Config.set('graphics', 'height', 700)
+Config.set('graphics', 'height', 800)
 Config.set('graphics', 'resizable', False)
 Config.write()
 
@@ -19,8 +19,15 @@ from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.button import MDFlatButton
+from kivy.uix.widget import Widget
+from kivy.uix.label import Label
 from kivymd.uix.behaviors.toggle_behavior import MDToggleButton
+from kivy.graphics import Color, Rectangle,Line
 
+from kivy.uix.image import Image
+from PIL import Image as PILImage, ImageOps
+from io import BytesIO
+from kivy.core.image import Image as CoreImage
 from kivy.lang import Builder
 from kivy.properties import (
     StringProperty,
@@ -51,6 +58,110 @@ LabelBase.register(name="Iconfont", fn_regular=resource_path(os.path.join("asset
 
 Builder.load_file(resource_path("ui.kv"))
 
+class AspectRatioWidget(Widget):
+    aspect_width = NumericProperty(1)
+    aspect_height = NumericProperty(1)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(size=self.update_canvas)
+        self.bind(pos=self.update_canvas)
+        self.bind(aspect_width=self.update_canvas)
+        self.bind(aspect_height=self.update_canvas)
+
+
+    def update_canvas(self, *args):
+        self.canvas.clear()
+
+        border_thickness = 1
+
+        width = self.width  - 2*border_thickness
+        height = self.height  - 2*border_thickness
+ 
+
+        box_width = width
+        box_height = width  * (self.aspect_height/self.aspect_width)
+        if box_height > height :
+            box_height = height 
+            box_width = height  * (self.aspect_width/self.aspect_height)
+
+        x = (width  - box_width) / 2
+        y = (height  - box_height) / 2
+        with self.canvas:
+            # border color
+            Color(1,1,1,1)
+            Line(rectangle=(self.pos[0], self.pos[1],width , height ), width=border_thickness)
+
+            # background color
+            Color(0,0,0,1)
+            Rectangle(pos=self.pos, size=(width , height ))
+
+            # inner rectengle color
+            Color(1,1,1,1)
+            Rectangle(pos=(self.pos[0]+x, self.pos[1]+y), size=(box_width, box_height))
+
+
+
+class RotatedImage(MDBoxLayout):
+    angle = NumericProperty(0)
+    flip_h = BooleanProperty(False)
+    flip_v = BooleanProperty(False)
+    source = StringProperty()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(flip_h=self.on_flip_h, flip_v=self.on_flip_v)
+        self.image = Image(source=self.source)
+        self.label = Label(text='No image available', font_size=32, color=(1, 1, 1, 1))
+        
+        if self.source:
+            self.add_widget(self.image)
+        else:
+            self.add_widget(self.label)
+
+    def on_source(self,instance,value):
+        if self.source:
+            self.clear_widgets()
+            self.image.source = self.source
+            self.add_widget(self.image)
+        else:
+            self.clear_widgets()
+            self.add_widget(self.label)
+
+    def on_angle(self, instance, value):
+        self.update_image()
+
+    def on_flip_h(self, instance, value):
+        self.update_image()
+
+    def on_flip_v(self, instance, value):
+        self.update_image()
+
+    def update_image(self):
+        if not self.image.source:
+            return
+        pil_image = PILImage.open(self.source).convert("RGBA")
+        
+        if self.flip_h:
+            pil_image = ImageOps.mirror(pil_image)
+        if self.flip_v:
+            pil_image = ImageOps.flip(pil_image)
+
+        pil_image = pil_image.rotate(-self.angle, expand=True, resample=PILImage.BICUBIC)
+        
+        # Convert PIL image to texture
+        self.texture = self._pil_to_texture(pil_image)
+
+    def _pil_to_texture(self, pil_image):
+        # Convert the PIL image to PNG bytes
+        byte_io = BytesIO()
+        pil_image.save(byte_io, format='PNG')
+        byte_io.seek(0)
+        
+        # Create a texture from the PNG bytes
+        core_image = CoreImage(byte_io, ext="png")
+        texture = core_image.texture
+        return texture
+
 # https://kivymd.readthedocs.io/en/1.1.1/behaviors/togglebutton/index.html
 class MyToggleButton(MDFlatButton, MDToggleButton,MDTooltip):
     def __init__(self, *args, **kwargs):
@@ -66,62 +177,114 @@ class FileItem(MDBoxLayout):
     text = StringProperty()
     btn_delete_clicked = ObjectProperty()
 
+Builder.load_string('''
+#:import utils kivy.utils
+<CMDLabel@MDLabel>:
+    adaptive_height: True
+    adaptive_width:True
 
-class FileList(MDBoxLayout):
+<VideoInfoWidget>:
+    orientation:"vertical"
+    RotatedImage:
+        id: video_thumbnail
+        flip_h:root.flip_h
+        flip_v:root.flip_v
+        angle: root.angle
+    MDBoxLayout:
+        orientation:"vertical"
+        adaptive_size:True
+        opacity: int(len(root.video) > 0)
+        CMDLabel:
+            text:"File Path: "+root.video
+        CMDLabel:
+            text: "File Size: "+utils.format_bytes_to_human(root.file_size)
+        CMDLabel:
+            text: "Bit Rate: "+utils.format_bytes_to_human(root.bitrate)
+        CMDLabel:
+            text:"Width: "+str(root.coded_width)
+        CMDLabel:
+            text: "Height: "+str(root.coded_height)
 
-    total_items = NumericProperty(0)
 
-    def __init__(self, **kwargs):
+''')
+class VideoInfoWidget(MDBoxLayout):
+    video = StringProperty()
+    file_size = NumericProperty()
+    bitrate = NumericProperty()
+    coded_width = NumericProperty()
+    coded_height = NumericProperty()
+    angle = NumericProperty(0)
+    flip_h = BooleanProperty(False)
+    flip_v = BooleanProperty(False)
+
+    aspect_ratio_w = StringProperty()
+
+    def __init__(self,*args,**kwargs):
+        super(VideoInfoWidget, self).__init__(*args,**kwargs)
         Window.bind(on_drop_file=self.on_file_drop)
         Window.bind(on_drop_end=self.file_drop_end)
-        super(FileList, self).__init__(**kwargs)
+        self.bind(flip_h=self.on_flip_h, flip_v=self.on_flip_v)
 
-    def butt_release(self, index):
-        for idx, i in enumerate(self.ids.rv.data):
-            if i["text"] == index:
-                self.ids.rv.data.pop(idx)
-                break
-        self.ids.rv.refresh_from_data()
-        self.total_items = len(self.ids.rv.data)
+    def on_angle(self,instance,value):
+        if len(self.video) != 0:
+            self.angle = value
 
-    def on_file_drop(self, window, file_path, *args):
-        video_file = file_path.decode("utf-8")
+    def on_flip_h(self,instance,value):
+        if len(self.video) != 0:
+            self.flip_h = True
 
-        file_extension = video_file.split(".")
+    def on_flip_v(self,instance,value):
+        if len(self.video) != 0:
+            selfflip_v = True
 
-        if file_extension[-1] not in ["mp4", "mkv"]:
+    def __helper(self, video):
+        def change_thumbnail_image(res):
+            self.ids.video_thumbnail.source = res
+
+        output = ffmpeg.get_video_info(video)
+        if output is None:
             return
 
-        self.ids.rv.data.append(
-            {
-                "text": video_file,
-                "delele_btn_pressed": partial(self.butt_release, video_file),
-            }
-        )
+        format = output['format']
+        self.file_size = format['size']
+        self.bitrate = format['bit_rate']
+
+        thumbnail_found = False
+
+        for stream in output['streams']:
+            codec_name = stream['codec_type']
+            if codec_name == 'video' and stream['codec_name']!='png':
+                self.coded_width = stream['width']
+                self.coded_height = stream['height']
+
+            if not thumbnail_found and stream['codec_name'] == "png":
+                res = ffmpeg.get_thumbnail(video, stream['index'])
+                thumbnail_found = True
+                Clock.schedule_once(lambda dt:change_thumbnail_image(res))
+
+        if not thumbnail_found:
+            # TODO generate thumbnail from video
+            Clock.schedule_once(lambda dt:change_thumbnail_image(""))
+
+                
+    def on_file_drop(self, window, file_path, *args):
+        video_file = file_path.decode("utf-8")
+        file_extension = video_file.split(".")
+        if file_extension[-1] not in ["mp4", "mkv"]:
+            self.video = ""
+            return
+        self.video  = video_file
+
 
     def file_drop_end(self, *args, **kwargs):
-        self.ids.rv.refresh_from_data()
-        self.total_items = len(self.ids.rv.data)
+        pass
 
-    def clear_file_list(self):
-        self.ids.rv.data = []
-        self.ids.rv.refresh_from_data()
-        self.total_items = len(self.ids.rv.data)
-
-    def get_all_file_name(self):
-        return [i["text"] for i in self.ids.rv.data]
-
-    def add_files(self, files):
-        for file_path in files:
-            self.ids.rv.data.append(
-                {
-                    "text": file_path,
-                    "delele_btn_pressed": partial(self.butt_release, file_path),
-                }
-            )
-
-        self.ids.rv.refresh_from_data()
-        self.total_items = len(self.ids.rv.data)
+    def on_video(self,instance,video):
+        if self.video:
+            thread = threading.Thread(target=self.__helper,args=(video,))
+            thread.start()
+        else:
+            self.ids.video_thumbnail.source = ""
 
 
 
@@ -176,7 +339,7 @@ class AppLayout(MDBoxLayout):
 
         self.ids.lbl_progress.text = "%.2f %s" % (progress,output_file_name)
         if progress == 100:
-            self.ids.btn_process.text = "Process Video"
+            self.ids.btn_process.text = "Render"
             self.ids.lbl_progress.text = ""
             Clock.schedule_once(lambda dt:hide_progress())
         else:
@@ -198,7 +361,18 @@ class AppLayout(MDBoxLayout):
 
     def set_item(self, text_item, caller, menu):
         caller.set_item(text_item)
+        w,h = map(float, text_item.split(":"))
+        self.ids.aspect_feedback.aspect_width = w
+        self.ids.aspect_feedback.aspect_height= h
         menu.dismiss()
+
+    def abc(self,value):
+        aw = self.ids.video_info.coded_width
+        ah = self.ids.video_info.coded_height 
+        w = self.ids.spinner_width.value
+        print(aw,ah,w,( w * ah )/aw)
+        self.ids.spinner_height.value = (( w * ah )/aw)
+        print(self.ids.spinner_height.value)
 
     def apply_filters(self):
         if self.__current_processing_video == None:
@@ -226,7 +400,7 @@ class AppLayout(MDBoxLayout):
             angle = self.ids.layout_rotate.value
             if self.ids.btn_custom_rotate.state == "down":
                 angle = self.ids.spinner_rotate.value
-            print(angle)
+
             self.__current_processing_video.rotate(float(angle))
 
         if self.ids.chk_stereo_to_mono.active:
@@ -266,11 +440,11 @@ class AppLayout(MDBoxLayout):
                 self.__current_processing_video.render(
                     output_path, callback=self.progress_callback
                 )
-        self.ids.btn_process.text = "Process Video"
+        self.ids.btn_process.text = "Render"
 
     def btn_process_video_clicked(self):
-        if self.ids.btn_process.text == "Stop All":
-            self.ids.btn_process.text = "Process Video"
+        if self.ids.btn_process.text == "Stop Rendring":
+            self.ids.btn_process.text = "Render"
             if self.__current_processing_video != None:
                 self.__stop_rendring = True
                 self.__current_processing_video.stop_rendring()
@@ -279,7 +453,7 @@ class AppLayout(MDBoxLayout):
             self.ids.lbl_progress.opacity = 1
             t = threading.Thread(target=self.process_video)
             t.start()
-            self.ids.btn_process.text = "Stop All"
+            self.ids.btn_process.text = "Stop Rendring"
 
 
 class VpuApp(MDApp):
