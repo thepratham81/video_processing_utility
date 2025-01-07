@@ -20,6 +20,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.button import MDFlatButton
 from kivy.uix.widget import Widget
+from kivymd.uix.label import MDLabel
 from kivy.uix.label import Label
 from kivymd.uix.behaviors.toggle_behavior import MDToggleButton
 from kivy.graphics import Color, Rectangle,Line
@@ -110,25 +111,28 @@ class RotatedImage(MDBoxLayout):
     flip_h = BooleanProperty(False)
     flip_v = BooleanProperty(False)
     source = StringProperty()
+    alt_text = StringProperty("Image not found")
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(flip_h=self.on_flip_h, flip_v=self.on_flip_v)
+        self.bind(flip_h=self.on_flip_h, flip_v=self.on_flip_v)
         self.image = Image(source=self.source)
-        self.label = Label(text='No image available', font_size=32, color=(1, 1, 1, 1))
-        
-        if self.source:
-            self.add_widget(self.image)
-        else:
-            self.add_widget(self.label)
-
-    def on_source(self,instance,value):
+        self.label = MDLabel(halign='center',font_style="H4")
+        Clock.schedule_once(lambda dt:self.update_status())
+                
+    def update_status(self):
         if self.source:
             self.clear_widgets()
             self.image.source = self.source
             self.add_widget(self.image)
         else:
+
             self.clear_widgets()
+            self.label.text =  self.alt_text
             self.add_widget(self.label)
+
+    def on_source(self,instance,value):
+        self.update_status()
 
     def on_angle(self, instance, value):
         self.update_image()
@@ -193,6 +197,7 @@ Builder.load_string('''
         flip_h:root.flip_h
         flip_v:root.flip_v
         angle: root.angle
+        alt_text: "Drag and Drop file Here"
     MDBoxLayout:
         orientation:"vertical"
         adaptive_size:True
