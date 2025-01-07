@@ -72,157 +72,162 @@
     CMDBoxLayout:
         CMDBoxLayout:
             orientation:"vertical"
-            MDLabel:
-                text: "Drag and Drop File Here"
-                adaptive_height:True
-                size_hint_y:None
-            FileList:
-                id: file_list
-                canvas.before:
-                    Color:
-                        rgba: .9, .9, .9, 1
-                    Line:
-                        width: 1
-                        rectangle: self.x, self.y, self.width, self.height
-
-            CMDBoxLayout:
-                size_hint_y: None
+            VideoInfoWidget:
+                id: video_info
+                angle: layout_rotate.value * int(chk_rotate.active)
+                filp_h: chk_flip_h.active
+                filp_v: chk_flip_v.active
+            MDRaisedButton:
+                text:"Add File"
+                size_hint_x: 1
+                size_hint_y :None
+                on_release:root.btn_add_file_clicked()
                 height: dp(48)
-                MDRaisedButton:
-                    text:"Add File(s)"
-                    size_hint_x: 1
-                    on_release:root.btn_add_file_clicked()
-                MDRaisedButton:
-                    text:"Remove All"
-                    on_release : file_list.clear_file_list()
-                    size_hint_x: 1
-                    disabled:file_list.total_items == 0
-            
-        MDGridLayout:
-            cols: 1
-            # size_hint_y: None
-            # size_hint_x: 0.6
-            row_default_height: '48dp'
-            row_force_default: True
+        CMDBoxLayout:
+            orientation:"vertical"
             adaptive_height:True
             pos_hint: {'top': 1, 'left': 1}  # Start from the top-left corner
-            # CheckItem:
-            #     id:chk_merge
-            #     text: "Merge Video"
-            CMDBoxLayout:
-                id:layout_rotate
-                value:90
-                # orientation: "vertical" if chk_rotate.active else "horizontal"
-                CheckItem:
-                    id:chk_rotate
-                    text: "Rotate Video"
-            Separator:
-            MDBoxLayout:
-                disabled:not chk_rotate.active
-                adaptive_width:True
+            disabled: len(video_info.video) == 0
+            MDGridLayout:
+                cols: 1
+                # size_hint_y: None
+                # size_hint_x: 0.6
+                row_default_height: '48dp'
+                row_force_default: True
                 adaptive_height:True
-                CToggleButton:
-                    id:btn_rotate_90
-                    state:"down"
-                    text:"\ue900"
-                    group:"rotate"
-                    tooltip_text:"Rotate 90°"
-                    on_state: if self.state == "down": layout_rotate.value = 90
-                CToggleButton:
-                    id:btn_rotate_180
-                    text:"\ue901"
-                    group:"rotate"
-                    tooltip_text:"Rotate 180°"
-                    on_state: if self.state == "down": layout_rotate.value = 180
-                CToggleButton:
-                    id:btn_rotate_270
-                    text:"\ue902"
-                    group:"rotate"
-                    tooltip_text:"Rotate 270°"
-                    on_state: if self.state == "down": layout_rotate.value = 270
-
-                CToggleButton:
-                    id:btn_custom_rotate
-                    text:"\ue903"
-                    tooltip_text:"Custom rotation"
-                    group:"rotate"
-                    on_state: if self.state == "down": layout_rotate.value = spinner_rotate.value
-                Separator:
-                    size_hint_x:None
-                    width:dp(10)
-                CSpinner:
-                    id:spinner_rotate
+                # CheckItem:
+                #     id:chk_merge
+                #     text: "Merge Video"
+                CMDBoxLayout:
+                    id:layout_rotate
                     value:90
-                    min:-360
-                    max: 360
-                    size_hint:None,None
-                    width:dp(58)
-                    # height:dp(48)
-                    pos:btn_custom_rotate.pos
-                    disabled:btn_custom_rotate.state!='down'
-                    opacity:1 if btn_custom_rotate.state == 'down' and chk_rotate.active else 0
-                    pos_hint: {"center_y":0.5}  # Start from the top-left corner
+                    # orientation: "vertical" if chk_rotate.active else "horizontal"
+                    CheckItem:
+                        id:chk_rotate
+                        text: "Rotate Video"
+                Separator:
+                MDBoxLayout:
+                    disabled:not chk_rotate.active
+                    adaptive_width:True
+                    adaptive_height:True
+                    CToggleButton:
+                        id:btn_rotate_90
+                        state:"down"
+                        text:"\ue900"
+                        group:"rotate"
+                        tooltip_text:"Rotate 90°"
+                        on_state: if self.state == "down": layout_rotate.value = 90
+                    CToggleButton:
+                        id:btn_rotate_180
+                        text:"\ue901"
+                        group:"rotate"
+                        tooltip_text:"Rotate 180°"
+                        on_state: if self.state == "down": layout_rotate.value = 180
+                    CToggleButton:
+                        id:btn_rotate_270
+                        text:"\ue902"
+                        group:"rotate"
+                        tooltip_text:"Rotate 270°"
+                        on_state: if self.state == "down": layout_rotate.value = 270
 
-            CheckItem:
-                id:chk_flip_h
-                text: "Flip horizontally"
-            CheckItem:
-                id:chk_flip_v
-                text: "Flip vectically"
-            CheckItem:
-                id:chk_stereo_to_mono
-                text: "Stereo to mono"
+                    CToggleButton:
+                        id:btn_custom_rotate
+                        text:"\ue903"
+                        tooltip_text:"Custom rotation"
+                        group:"rotate"
+                        on_state: if self.state == "down": layout_rotate.value = spinner_rotate.value
+                    Separator:
+                        size_hint_x:None
+                        width:dp(10)
+                    CSpinner:
+                        id:spinner_rotate
+                        value:90
+                        min:-360
+                        max: 360
+                        size_hint:None,None
+                        width:dp(58)
+                        # height:dp(48)
+                        pos:btn_custom_rotate.pos
+                        disabled:btn_custom_rotate.state!='down'
+                        opacity:1 if btn_custom_rotate.state == 'down' and chk_rotate.active else 0
+                        pos_hint: {"center_y":0.5}  # Start from the top-left corner
 
-
-            CMDBoxLayout:
                 CheckItem:
-                    id:chk_scale_video
-                    text: "Scale Video"
-    
-                CSpinner:
-                    id:spinner_width
-                    value:1920
-                    min:float("-inf")
-                    max:float("inf")
-                    size_hint_x:None
-                    width:dp(58)
-                    disabled:not chk_scale_video.active
-                    opacity:int(chk_scale_video.active)
-
-                CSpinner:
-                    id:spinner_height
-                    value:1080
-                    min:float("-inf")
-                    max:float("inf")
-                    size_hint_x:None
-                    width:dp(58)
-                    disabled:not chk_scale_video.active
-                    opacity:int(chk_scale_video.active)
-
-            CMDBoxLayout:
+                    id:chk_flip_h
+                    text: "Flip horizontally"
                 CheckItem:
-                    id:chk_volume
-                    text: "Change Volume"
-                CSpinner:
-                    id:spinner_volume
-                    value:100
-                    min:0
-                    max: 100
-                    size_hint_x:None
-                    width:dp(58)
-                    disabled:not chk_volume.active
-                    opacity:int(chk_volume.active)
-
-            CMDBoxLayout:
+                    id:chk_flip_v
+                    text: "Flip vectically"
                 CheckItem:
-                    id:chk_aspect_ratio
-                    text: "Change Aspect Ratio"
-                MDDropDownItem:
-                    id: drop_item_aspect_ratio
-                    disabled: not chk_aspect_ratio.active
-                    opacity:int(chk_aspect_ratio.active)
-                    text: "16:9"
-                    on_release: root.aspect_ratio_menu.open()
+                    id:chk_stereo_to_mono
+                    text: "Stereo to mono"
+
+
+                CMDBoxLayout:
+                    CheckItem:
+                        id:chk_scale_video
+                        text: "Scale Video"
+        
+                    CSpinner:
+                        id:spinner_width
+                        value:1920
+                        min:float("-inf")
+                        max:float("inf")
+                        size_hint_x:None
+                        width:dp(58)
+                        disabled:not chk_scale_video.active
+                        opacity:int(chk_scale_video.active)
+                        on_change: root.abc(self.value)
+
+                    CSpinner:
+                        id:spinner_height
+                        value:1080
+                        min:float("-inf")
+                        max:float("inf")
+                        size_hint_x:None
+                        width:dp(58)
+                        disabled:not chk_scale_video.active
+                        opacity:int(chk_scale_video.active)
+
+                CMDBoxLayout:
+                    CheckItem:
+                        id:chk_volume
+                        text: "Change Volume"
+                    CSpinner:
+                        id:spinner_volume
+                        value:100
+                        min:0
+                        max: 100
+                        size_hint_x:None
+                        width:dp(58)
+                        disabled:not chk_volume.active
+                        opacity:int(chk_volume.active)
+
+                CMDBoxLayout:
+                    CheckItem:
+                        id:chk_aspect_ratio
+                        text: "Change Aspect Ratio"
+                    MDDropDownItem:
+                        id: drop_item_aspect_ratio
+                        disabled: not chk_aspect_ratio.active
+                        opacity:int(chk_aspect_ratio.active)
+                        text: "16:9"
+                        on_release: root.aspect_ratio_menu.open()
+            CMDBoxLayout:
+                size_hint: 1 ,None
+                height :dp(150)
+                opacity: int(chk_aspect_ratio.active)
+                AspectRatioWidget:
+                    aspect_width : 16
+                    aspect_height: 9
+                    size_hint : None, None
+                    size: dp(150),dp(150)
+                AspectRatioWidget:
+                    id: aspect_feedback
+                    aspect_width : 16
+                    aspect_height: 9
+                    size_hint : None, None
+                    size: dp(150),dp(150)
 
     CheckItem:
         id: chk_output_dir
@@ -239,14 +244,16 @@
         MDRaisedButton:
             id: btn_browse
             text:"Browse"
-            # size_hint_x: .2
+            size_hint_x: .4
             on_release:root.btn_select_folder()
 
+    
     MDRaisedButton:
         id: btn_process
         size_hint_y: None
         height: dp(48)
-        text:"Process Video"
+        text:"Render Video"
         on_release: root.btn_process_video_clicked()
-        size_hint_x: 1
-        disabled: file_list.total_items == 0
+        size_hint_x: None
+        pos_hint: {"right":1}
+        # disabled: file_list.total_items == 0
