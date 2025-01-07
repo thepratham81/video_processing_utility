@@ -156,7 +156,7 @@ class RotatedImage(MDBoxLayout):
         pil_image = pil_image.rotate(-self.angle, expand=True, resample=PILImage.BICUBIC)
         
         # Convert PIL image to texture
-        self.texture = self._pil_to_texture(pil_image)
+        self.image.texture = self._pil_to_texture(pil_image)
 
     def _pil_to_texture(self, pil_image):
         # Convert the PIL image to PNG bytes
@@ -281,8 +281,9 @@ class VideoInfoWidget(MDBoxLayout):
                 Clock.schedule_once(lambda dt:change_thumbnail_image(res))
 
         if not thumbnail_found:
-            # TODO generate thumbnail from video
-            Clock.schedule_once(lambda dt:change_thumbnail_image(""))
+            res = ffmpeg.generate_thumbnail(video,1)
+            if res:
+                Clock.schedule_once(lambda dt:change_thumbnail_image(res))
 
                 
     def on_file_drop(self, window, file_path, *args):
@@ -357,13 +358,12 @@ class AppLayout(MDBoxLayout):
             self.ids.btn_process.text = "Stop Processing"
 
     def btn_add_file_clicked(self):
-        files = filechooser.open_file(
-            multiple=True,
+        result  = filechooser.open_file(
+            multiple=False,
             filters=[["Video (mp4, mkv)", "*.mp4", "*.mkv"], ["All Files", "*.*"]],
         )
-
-        if files != None:
-            self.ids.file_list.add_files(files)
+        if result  != None:
+            self.ids.video_info.video = result[0]
 
     def btn_select_folder(self):
         folder = filechooser.choose_dir()
