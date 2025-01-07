@@ -1,4 +1,4 @@
-from kivy.properties import NumericProperty
+from kivy.properties import NumericProperty,ObjectProperty
 from kivy.lang import Builder
 from kivymd.uix.boxlayout import MDBoxLayout
 
@@ -30,14 +30,23 @@ class CSpinner(MDBoxLayout):
     min    = NumericProperty(0)
     max    = NumericProperty(100)
     h      = NumericProperty(32)
+    def __init__(self,*args,**kwargs):
+        super(CSpinner, self).__init__(*args,**kwargs)
+        self.register_event_type('on_change')
+
+    def on_change(self):
+        pass
+        
 
     def increment(self):
         if self.value + 1 <= self.max: 
             self.value += 1
+        self.dispatch('on_change')
 
     def decrement(self):
         if self.value - 1 >= self.min:
             self.value -= 1
+        self.dispatch('on_change')
 
     def on_touch_down(self, touch):
         super().on_touch_down(touch)
