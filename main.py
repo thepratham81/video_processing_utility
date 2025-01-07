@@ -277,7 +277,7 @@ class VideoInfoWidget(MDBoxLayout):
                 Clock.schedule_once(lambda dt:change_dimensions(width,height))
 
             if not thumbnail_found and stream['codec_name'] == "png":
-                res = ffmpeg.get_thumbnail(video, stream['index'])
+                res = ffmpeg.get_thumbnail(video, stream['index'],self.ids.video_thumbnail.height)
                 thumbnail_found = True
                 Clock.schedule_once(lambda dt:change_thumbnail_image(res))
 

@@ -17,13 +17,13 @@ FFPROBE_PATH = os.path.join(
     base_path, "ffmpeg", "ffprobe.exe" if os.name == "nt" else "ffprobe"
 )
 
-def get_thumbnail(file_path, index):
+def get_thumbnail(file_path, index,height = -1):
     # Create a temporary file to store the thumbnail
     with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as temp_file:
         temp_file_path = temp_file.name
 
     command = [
-        FFMPEG_PATH, "-i", file_path, "-map", f"0:{index}", "-c", "png", "-f", "image2pipe", "-"
+        FFMPEG_PATH, "-i", file_path, "-map", f"0:{index}", "-vf", f"scale=-1:{height}", "-c:v", "png", "-f", "image2pipe", "-"
     ]
     
     try:
