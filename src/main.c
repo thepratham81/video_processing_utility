@@ -9,6 +9,10 @@
 #endif
 #include <GL/gl.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include "icon.h"
 #ifdef IMGUI_HAS_IMSTR
 #define igBegin igBegin_Str
 #define igSliderFloat igSliderFloat_Str
@@ -16,7 +20,7 @@
 #define igColorEdit3 igColorEdit3_Str
 #define igButton igButton_Str
 #endif
-
+#define UNUSED(x) (void)(x)
 #define igGetIO igGetIO_Nil
 
 GLFWwindow* window;
@@ -29,10 +33,11 @@ void drop_callback(GLFWwindow* window, int count, const char** paths)
     }
 }
 
+// FIXME:it should diselct when pressed twice 
 bool toggle_button(const char* label, int *v, int id)
 {
     bool is_selected = (*v == id);
-    
+     
     if (is_selected) {
         const ImVec4* pressed_color = igGetStyleColorVec4(ImGuiCol_ButtonActive);
         igPushStyleColor_Vec4(ImGuiCol_Button, *pressed_color);
@@ -50,11 +55,12 @@ bool toggle_button(const char* label, int *v, int id)
     
     return is_selected;
 }
-int main(int argc, char* argv[])
+
+void init()
 {
 
     if (!glfwInit())
-        return -1;
+        return;
 
     // Decide GL+GLSL versions
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
@@ -71,17 +77,16 @@ int main(int argc, char* argv[])
 #endif
 
     // just an extra window hint for resize
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(
         glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
-    window = glfwCreateWindow((int)(1280 * main_scale), (int)(800 * main_scale),
-                              "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
-
+    window = glfwCreateWindow((int)(700 * main_scale), (int)(600 * main_scale),
+                              "VPU", NULL, NULL);
     if (!window)
     {
         printf("Failed to create window! Terminating!\n");
         glfwTerminate();
-        return -1;
+        return;
     }
 
     glfwMakeContextCurrent(window);
@@ -102,9 +107,9 @@ int main(int argc, char* argv[])
     // ioptr->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable
     // Gamepad Controls
 #ifdef IMGUI_HAS_DOCK
-    ioptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-    ioptr->ConfigFlags |=
-        ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform
+    // ioptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+    // ioptr->ConfigFlags |=
+        // ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform
                                           // Windows
 #endif
 
@@ -131,23 +136,38 @@ int main(int argc, char* argv[])
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     igStyleColorsDark(NULL);
-    ImFont *defalut =  ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "./font.ttf", 16.0f, NULL, NULL);
-    ImFont *icon    =  ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "/home/user/programming/guis/vpu_python/asset/icon.ttf",
-                                   16.0f, NULL, NULL);
-    #define icon(x) igPushFont(icon,16);igPopFont()
-    ImVec4 clearColor;
-    clearColor.x = 0.45f;
-    clearColor.y = 0.55f;
-    clearColor.z = 0.60f;
-    clearColor.w = 1.00f;
+    ImFont* default_font =  ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "./font.ttf", 16.0f, NULL, NULL);
+    UNUSED(default_font);
 
     // main event loop
     bool quit = false;
+    UNUSED(quit);
+}
+
+int main(int argc, char* argv[])
+{
+    init();
     glfwSetDropCallback(window, drop_callback);
-   
-    bool rotate = false;
-    bool fliph  = false;
-    bool flipv  = false;
+       GLuint texture;
+    int width, height, channels;
+    unsigned char* data = stbi_load("/home/user/Pictures/question.png", &width, &height, &channels, 0);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, channels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    stbi_image_free(data);
+
+    ImVec4 clearColor;
+    clearColor.x = 0.11f;
+    clearColor.y = 0.11f;
+    clearColor.z = 0.11f;
+    clearColor.w = 1.00f;
+
+    ImGuiIO* ioptr = igGetIO();
+
+    ImFont* icon_font    =  ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "/home/user/programming/guis/vpu_python/asset/icon.ttf",
+                                   16.0f, NULL, NULL);
     while (!glfwWindowShouldClose(window))
     {
 
@@ -159,32 +179,100 @@ int main(int argc, char* argv[])
 
         igNewFrame();
         {
-            static float f = 0.0f;
-            static int counter = 0;
 
-            igBegin("Tools", NULL, 0);
+            igBegin("Tools", NULL,ImGuiWindowFlags_AlwaysAutoResize);
+
+            static bool rotate = false;
             igCheckbox("Rotate", &rotate);
             if(rotate)
             {
                 static int e = 0;
 
-                igPushFont(icon,40);
+                igPushFont(icon_font,40);
                 
-                toggle_button("\ue901",&e,0);igSameLine(0.0f, -1.0f);
-                toggle_button("\ue902",&e,1);igSameLine(0.0f, -1.0f);
-                toggle_button("\ue903",&e,2);
+                toggle_button(icon_rotate_90,&e,0);igSameLine(0.0f, -1.0f);
+                toggle_button(icon_rotate_180,&e,1);igSameLine(0.0f, -1.0f);
+                toggle_button(icon_rotate_270,&e,2);igSameLine(0.0f, -1.0f);
+                toggle_button(icon_rotate_custom,&e,3);
+
                 igPopFont();
+
+                if(e==3)
+                {
+                    static int value = 42;
+                    const int min_val = -360;
+                    const int max_val = 360;
+                    igSetNextItemWidth(150.0f); 
+                    if (igInputInt("Angle", &value, 1,5,0)) {
+                        if (value < min_val) value = min_val;
+                        if (value > max_val) value = max_val;
+                    }
+                }
 
 
                 
             }
+
+            static bool fliph          = false;
+            static bool flipv          = false;
+            static bool stereo_to_mono = false;
+            static bool aspect_ratio   = false;
+
             igCheckbox("Flip Horizontally", &fliph);
-            igCheckbox("Flip Vertically", &flipv);
-
-
+            igCheckbox("Flip Vertically",   &flipv);
+            igCheckbox("Stereo to mono",    &stereo_to_mono);
+            igCheckbox("Aspect Ratio",      &aspect_ratio);
+        
         }
         igEnd();
+        // ImVec2 pos;
+        // igGetWindowPos(&pos);
+        // pos.x += 43;
+        // pos.y += 34;
+        // igSetNextWindowPos(pos, 0, (ImVec2){0, 0});
+        igBegin("Preview", NULL,0);
+        {
 
+            ImTextureRef tex_ref = {
+                ._TexData = NULL,
+                ._TexID = (ImTextureID)(intptr_t)texture
+                };
+            igImage(tex_ref, (ImVec2){width/4, height/4}, (ImVec2){0,0}, (ImVec2){1,1});
+           
+            if (igBeginTable("video_info", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg, (ImVec2){0, 0}, 0.0f)) 
+            {
+    
+                igTableSetupColumn(NULL, ImGuiTableColumnFlags_WidthFixed, 100.0f, 0);
+
+                igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
+                igTableSetColumnIndex(0);
+                igText("Location");
+                igTableSetColumnIndex(1);
+                igText("~/video/test.mp4");
+                
+                igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
+                igTableSetColumnIndex(0);
+                igText("width");
+                igTableSetColumnIndex(1);
+                igText("900");
+        
+                igEndTable();
+            }
+
+            igBeginTabBar("maadsf",0);
+            {
+                if(igBeginTabItem("asf",NULL,0))
+                {
+
+                    igText("s900");
+                    igEndTabItem();
+                }
+            igEndTabBar(); 
+            }
+
+            igEnd();
+        }
+        
 
         // render
         igRender();
