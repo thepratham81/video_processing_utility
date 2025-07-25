@@ -65,6 +65,7 @@ int main(int argc, char** argv)
     char* mem = Vector(*mem);
 
     char* MAIN_FILE = &mem[join_path(mem,"src","main.c",NULL)];;
+    char* MOVIEC_C  = &mem[join_path(mem,"src","moviec.c",NULL)];;
     char* backend_folder  = &mem[join_path(mem,CIMGUI_PATH,"imgui","backends",NULL)];
     if(!folder_exists(backend_folder))
     {
@@ -158,6 +159,10 @@ int main(int argc, char** argv)
                     "-DIMGUI_IMPL_OPENGL_LOADER_GL3W"       ,
                     MAIN_FILE                               ,
                    "-c"                                     ,
+                   "-std=c11"                               ,
+                   "-pedantic"                              ,
+                   "-Wall"                                  ,
+                   // "-Werror"                                ,
                    "-o"                                     ,
                    "main.o"
                    );
@@ -165,9 +170,23 @@ int main(int argc, char** argv)
     if (!nob_cmd_run_sync_and_reset(&cmd))
         {goto fail;}
 
+    nob_cmd_append(&cmd,
+                   "gcc",
+                   MOVIEC_C,
+                   "-c",
+                   "-std=c99",
+                   "-pedantic",
+                   "-Wall",  
+                   "-o",
+                   "moviec.o"
+                   );
+     if (!nob_cmd_run_sync_and_reset(&cmd))
+        {goto fail;}
+
     nob_cmd_append(&cmd         ,
                    "g++"        ,
                    "main.o",
+                   "moviec.o",
                    "libcimgui.a",
                    "-o"         ,
                    APP_NAME     ,
