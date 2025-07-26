@@ -4,6 +4,7 @@
 #define IMPLEMENT_VECTOR
 #include "vector.h"
 
+#define MAX_BUF_SIZE 1 << 8
 #define video_add_filter(dst, x)                                               \
     do                                                                         \
     {                                                                          \
@@ -15,48 +16,48 @@
             vector_append(dst, *tm___p++);                                     \
     } while (0)
 
-#define video_add_etc(video, x)                                               \
+#define video_add_etc(video, x)                                                \
     do                                                                         \
     {                                                                          \
         char* tm___p;                                                          \
-        size_t lo___c;\
+        size_t lo___c;                                                         \
         tm___p = x;                                                            \
-        lo___c = vector_length(video->me__m);\
+        lo___c = vector_length(video->me__m);                                  \
         while (*tm___p)                                                        \
-            vector_append(video->me__m, *tm___p++);                                     \
-        vector_append(video->me__m,'0');                                     \
-        vector_append(video->etc,lo___c);\
+            vector_append(video->me__m, *tm___p++);                            \
+        vector_append(video->me__m, '0');                                      \
+        vector_append(video->et__c, lo___c);                                     \
     } while (0)
 typedef struct
 {
-    char* input;
-    char* vf;
-    char* af;
-    int*  etc;
-    char* me__m; /* arena */ 
+    char* file_name;
+    char* v__f;
+    char* a__f;
+    int* et__c;
+    char* me__m; /* arena */
 } Video;
 
 int video_init(Video* video, char* input)
 {
-    video->input = calloc(strlen(input) + 1, sizeof(*input));
+    video->file_name = calloc(strlen(input) + 1, sizeof(*input));
 
-    if (!video->input)
+    if (!video->file_name)
         return -1;
-    strcpy(video->input, input);
+    strcpy(video->file_name, input);
 
-    video->vf    = Vector(*video->vf);
-    video->af    = Vector(*video->af);
-    video->etc   = Vector(*video->etc);
+    video->v__f = Vector(*video->v__f);
+    video->a__f = Vector(*video->a__f);
+    video->et__c = Vector(*video->et__c);
     video->me__m = Vector(*video->me__m);
     return 0;
 }
 
 void free_video(Video* video)
 {
-    free(video->input);
-    free_vector(video->vf);
-    free_vector(video->af);
-    free_vector(video->etc);
+    free(video->file_name);
+    free_vector(video->v__f);
+    free_vector(video->a__f);
+    free_vector(video->et__c);
     free_vector(video->me__m);
 }
 
@@ -65,17 +66,17 @@ void video_rotate(Video* video, int angle)
     switch (angle)
     {
     case 90: {
-        video_add_filter(video->vf, "transpose=1");
+        video_add_filter(video->v__f, "transpose=1");
     }
     break;
 
     case 180: {
-        video_add_filter(video->vf, "transpose=2");
+        video_add_filter(video->v__f, "transpose=2");
     }
     break;
 
     case 270: {
-        video_add_filter(video->vf, "transpose=3");
+        video_add_filter(video->v__f, "transpose=3");
     }
     break;
 
@@ -84,9 +85,9 @@ void video_rotate(Video* video, int angle)
         degree = (angle % 360) * (3.14159265358979323846 / 180.0f);
         if (degree)
         {
-            char tmp[100];
-            snprintf(tmp, sizeof(tmp)-1, "rotate=%.6f", degree);
-            video_add_filter(video->vf,tmp);
+            char tmp[MAX_BUF_SIZE];
+            snprintf(tmp, sizeof(tmp), "rotate=%.6f", degree);
+            video_add_filter(video->v__f, tmp);
         }
     }
     }
@@ -94,41 +95,51 @@ void video_rotate(Video* video, int angle)
 
 void video_fliph(Video* video)
 {
-    video_add_filter(video->vf,"hflip");
+    video_add_filter(video->v__f, "hflip");
 }
 
 void video_flipv(Video* video)
 {
-    video_add_filter(video->vf,"vflip");
+    video_add_filter(video->v__f, "vflip");
 }
 
-void video_set_aspect_ratio(Video *video,int x,int y)
+void video_set_aspect_ratio(Video* video, int x, int y)
 {
 
-    char tmp[100];
-    snprintf(tmp, sizeof(tmp)-1, "setdar=%d/%d",x,y);
-    video_add_filter(video->vf,tmp);
+    char tmp[MAX_BUF_SIZE];
+    snprintf(tmp, sizeof(tmp), "setdar=%d/%d", x, y);
+    video_add_filter(video->v__f, tmp);
 }
 
-
-void video_stereo_to_mono(Video *video)
+void video_stereo_to_mono(Video* video)
 {
-    video_add_etc(video,"-ac");
-    video_add_etc(video,"1");
+    video_add_etc(video, "-ac");
+    video_add_etc(video, "1");
 }
 
-
-void video_change_framerate(Video *video, size_t framerate) 
+void video_scale_volume(Video* video, int volume)
 {
-    char temp[100];
-    snprintf(temp,sizeof(temp)-1, "-r %ld", framerate);
-    video_add_etc(video,temp);
+    char tmp[MAX_BUF_SIZE];
+    snprintf(tmp, 100, "volume=%.6f", (float)(volume % 100) / (100.0f));
+    video_add_etc(video, "-filter:a");
+    video_add_etc(video, tmp);
 }
 
+void video_change_bitrate(Video *video, int bitrate)
+{
+    char tmp[MAX_BUF_SIZE];
+    snprintf(tmp,sizeof(tmp),"-b:v %d", bitrate);
+    video_add_etc(video, tmp);
+}
 
-// int main()
-// {
-//     Video v;
-//     video_init(&v,"a.mp4");
-//
-// }
+void video_change_framerate(Video* video, size_t framerate)
+{
+    char tmp[MAX_BUF_SIZE];
+    snprintf(tmp, sizeof(tmp), "-r %ld", framerate);
+    video_add_etc(video, tmp);
+}
+
+void remove_audio(Video* video)
+{
+    video_add_etc(video, "-an");
+}
