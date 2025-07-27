@@ -251,7 +251,26 @@ void show_preview_window()
                 ._TexID = (ImTextureID)(intptr_t)texture
                 };
             igImage(tex_ref, (ImVec2){width/4, height/4}, (ImVec2){0,0}, (ImVec2){1,1});
-           
+       if (igBeginTable("video_info", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg, (ImVec2){400, 0}, 0.0f)) 
+        {
+
+            igTableSetupColumn(NULL, ImGuiTableColumnFlags_WidthFixed, 100.0f, 0);
+
+            igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
+            igTableSetColumnIndex(0);
+            igText("Location");
+            igTableSetColumnIndex(1);
+            igText("~/video/test.mp4");
+            
+            igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
+            igTableSetColumnIndex(0);
+            igText("width");
+            igTableSetColumnIndex(1);
+            igText("900");
+    
+            igEndTable();
+        }
+
 
     igEndGroup();
 }
@@ -301,6 +320,23 @@ int main(int argc, char* argv[])
                         show_preview_window();
                         igSameLine(0.0f, -1.0f);
                         show_single_click_menu(&m);
+
+                        static bool input;
+                        static char data[2048];
+
+                        igDummy((ImVec2){0, 20});
+
+                        igBeginGroup();
+                        igCheckbox("Output dir same as input dir", &input);
+
+                        // igInputText("##",data,sizeof(data),0,NULL,NULL);
+                        igInputTextEx("##","Output file",data,sizeof(data),(ImVec2){viewport->Size.x-110,0},0,NULL,NULL);
+                        igSameLine(0.0f, -1.0f);
+
+                        if(igButton("Browse",(ImVec2){0}))
+                        {
+                        }
+                        igEndGroup();
                         igEndTabItem();
                     }
 
@@ -329,26 +365,7 @@ int main(int argc, char* argv[])
         if(!hidden && igBegin("Preview", NULL,0))
         {
 
-            if (igBeginTable("video_info", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg, (ImVec2){0, 0}, 0.0f)) 
-            {
-    
-                igTableSetupColumn(NULL, ImGuiTableColumnFlags_WidthFixed, 100.0f, 0);
-
-                igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
-                igTableSetColumnIndex(0);
-                igText("Location");
-                igTableSetColumnIndex(1);
-                igText("~/video/test.mp4");
-                
-                igTableNextRow(ImGuiTableRowFlags_None, 0.0f);
-                igTableSetColumnIndex(0);
-                igText("width");
-                igTableSetColumnIndex(1);
-                igText("900");
-        
-                igEndTable();
-            }
-
+            
             igBeginTabBar("maadsf",0);
             {
                 if(igBeginTabItem("asf",NULL,0))
