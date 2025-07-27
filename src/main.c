@@ -22,15 +22,24 @@
 #endif
 #define UNUSED(x) (void)(x)
 #define igGetIO igGetIO_Nil
-
+#define IM_COL32(R,G,B,A) (((ImU32)(A)<<24) | ((ImU32)(B)<<16) | ((ImU32)(G)<<8) | ((ImU32)(R)))
 GLFWwindow* window;
 
+#define tooltip(x) if(igIsItemHovered(ImGuiHoveredFlags_DelayShort)) igSetTooltip(x)
 void drop_callback(GLFWwindow* window, int count, const char** paths)
 {
-    for (int i = 0; i < count; i++)
+    if(count > 1)
     {
-        printf("Dropped file: %s\n", paths[i]);
+
+        printf("only one video file is allowed\n");
+        return;
     }
+    #define is_video(x) true
+    if(!is_video(paths[i]))
+    {
+        puts("Only video file is allowed");
+    }
+
 }
 
 // FIXME:it should diselct when pressed twice 
@@ -77,7 +86,7 @@ void init()
 #endif
 
     // just an extra window hint for resize
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(
         glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
     window = glfwCreateWindow((int)(700 * main_scale), (int)(600 * main_scale),
@@ -144,19 +153,112 @@ void init()
     UNUSED(quit);
 }
 
+typedef struct
+{
+    bool rotate; 
+    bool fliph; 
+    bool filpv; 
+    bool strip_audio;
+    bool stereo_to_mono;
+}SingleClickMenu;
+
+void show_single_click_menu(SingleClickMenu* m)
+{
+    igBeginGroup();
+
+    igCheckbox("Rotate", &m->rotate);
+    tooltip("Rotate the video");
+    if(m->rotate)
+    {
+        static int e = 0;
+
+        // igPushFont(icon_font,40);
+        
+        toggle_button(icon_rotate_90,&e,0);
+        tooltip("Rotate the video by 90degrees");
+        igSameLine(0.0f, -1.0f);
+
+        toggle_button(icon_rotate_180,&e,1);
+        tooltip("Rotate the video by 180degrees");
+        igSameLine(0.0f, -1.0f);
+
+        toggle_button(icon_rotate_270,&e,2);
+        igSameLine(0.0f, -1.0f);
+
+        toggle_button(icon_rotate_custom,&e,3);
+
+        // igPopFont();
+
+        if(e==3)
+        {
+            static int value  = 42;
+            const int min_val = -360;
+            const int max_val = 360;
+            igSetNextItemWidth(150.0f); 
+            if (igInputInt("Angle", &value, 1,5,0)) {
+                if (value < min_val) value = min_val;
+                if (value > max_val) value = max_val;
+            }
+        }
+
+
+        
+    }
+
+
+    igCheckbox("Flip Horizontally", &m->fliph);
+    igCheckbox("Flip Vertically",   &m->filpv);
+    igCheckbox("Stereo to mono",    &m->stereo_to_mono);
+
+    igCheckbox("Strip Audio",       &m->strip_audio);
+    tooltip("Remove audio from the video");
+    {
+        static bool aspect_ratio = false;
+        igCheckbox("Aspect Ratio",&aspect_ratio);
+        if(aspect_ratio)
+        {
+           igText("Work in progress"); 
+        }
+    }
+
+    igEndGroup();
+}
+
+void show_preview_window()
+{
+    static bool is_initilise = false;
+
+    static GLuint texture;
+
+    static int width, height, channels;
+    static unsigned char* data;
+    if(!is_initilise)
+    {
+
+        data = stbi_load("/home/user/Pictures/question.png", &width, &height, &channels, 0);
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, channels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        stbi_image_free(data);
+        is_initilise = true;
+    }
+
+    igBeginGroup();
+              ImTextureRef tex_ref = {
+                ._TexData = NULL,
+                ._TexID = (ImTextureID)(intptr_t)texture
+                };
+            igImage(tex_ref, (ImVec2){width/4, height/4}, (ImVec2){0,0}, (ImVec2){1,1});
+           
+
+    igEndGroup();
+}
 int main(int argc, char* argv[])
 {
     init();
     glfwSetDropCallback(window, drop_callback);
-       GLuint texture;
-    int width, height, channels;
-    unsigned char* data = stbi_load("/home/user/Pictures/question.png", &width, &height, &channels, 0);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, channels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    stbi_image_free(data);
 
     ImVec4 clearColor;
     clearColor.x = 0.11f;
@@ -168,6 +270,8 @@ int main(int argc, char* argv[])
 
     ImFont* icon_font    =  ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "/home/user/programming/guis/vpu_python/asset/icon.ttf",
                                    16.0f, NULL, NULL);
+    SingleClickMenu m={0};
+
     while (!glfwWindowShouldClose(window))
     {
 
@@ -180,65 +284,51 @@ int main(int argc, char* argv[])
         igNewFrame();
         {
 
-            igBegin("Tools", NULL,ImGuiWindowFlags_AlwaysAutoResize);
+            ImGuiViewport* viewport = igGetMainViewport();
 
-            static bool rotate = false;
-            igCheckbox("Rotate", &rotate);
-            if(rotate)
+            igSetNextWindowPos(viewport->Pos, ImGuiCond_Always, (ImVec2){0, 0});
+            igSetNextWindowSize(viewport->Size, ImGuiCond_Always);
+
+            igBegin("main_window", NULL, ImGuiWindowFlags_NoResize | 
+                                        ImGuiWindowFlags_NoCollapse | 
+                                            ImGuiWindowFlags_NoTitleBar );
             {
-                static int e = 0;
 
-                igPushFont(icon_font,40);
-                
-                toggle_button(icon_rotate_90,&e,0);igSameLine(0.0f, -1.0f);
-                toggle_button(icon_rotate_180,&e,1);igSameLine(0.0f, -1.0f);
-                toggle_button(icon_rotate_270,&e,2);igSameLine(0.0f, -1.0f);
-                toggle_button(icon_rotate_custom,&e,3);
-
-                igPopFont();
-
-                if(e==3)
+                igBeginTabBar("main_tab",0);
                 {
-                    static int value = 42;
-                    const int min_val = -360;
-                    const int max_val = 360;
-                    igSetNextItemWidth(150.0f); 
-                    if (igInputInt("Angle", &value, 1,5,0)) {
-                        if (value < min_val) value = min_val;
-                        if (value > max_val) value = max_val;
+                    if(igBeginTabItem("Single Click",NULL,0))
+                    {
+                        show_preview_window();
+                        igSameLine(0.0f, -1.0f);
+                        show_single_click_menu(&m);
+                        igEndTabItem();
                     }
+
+                    if(igBeginTabItem("Advance",NULL,0))
+                    {
+
+                        igEndTabItem();
+                    }
+
+                    if(igBeginTabItem("Remix",NULL,0))
+                    {
+
+                    igEndTabItem();
+                    }
+                    igEndTabBar(); 
                 }
-
-
-                
+                igEnd();
             }
-
-            static bool fliph          = false;
-            static bool flipv          = false;
-            static bool stereo_to_mono = false;
-            static bool aspect_ratio   = false;
-
-            igCheckbox("Flip Horizontally", &fliph);
-            igCheckbox("Flip Vertically",   &flipv);
-            igCheckbox("Stereo to mono",    &stereo_to_mono);
-            igCheckbox("Aspect Ratio",      &aspect_ratio);
-        
         }
-        igEnd();
         // ImVec2 pos;
         // igGetWindowPos(&pos);
         // pos.x += 43;
         // pos.y += 34;
         // igSetNextWindowPos(pos, 0, (ImVec2){0, 0});
-        igBegin("Preview", NULL,0);
+        static bool hidden = true;
+        if(!hidden && igBegin("Preview", NULL,0))
         {
 
-            ImTextureRef tex_ref = {
-                ._TexData = NULL,
-                ._TexID = (ImTextureID)(intptr_t)texture
-                };
-            igImage(tex_ref, (ImVec2){width/4, height/4}, (ImVec2){0,0}, (ImVec2){1,1});
-           
             if (igBeginTable("video_info", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg, (ImVec2){0, 0}, 0.0f)) 
             {
     
@@ -272,10 +362,10 @@ int main(int argc, char* argv[])
 
             igEnd();
         }
-        
-
+    
         // render
         igRender();
+
         glfwMakeContextCurrent(window);
         glViewport(0, 0, (int)ioptr->DisplaySize.x, (int)ioptr->DisplaySize.y);
         glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -302,4 +392,5 @@ int main(int argc, char* argv[])
     glfwTerminate();
 
     return 0;
+
 }
