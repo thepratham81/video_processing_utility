@@ -1,0 +1,7 @@
+-xc
+-std=c11
+-I./cimgui/
+-I./cimgui/imgui/
+-I./
+-DCIMGUI_USE_GLFW
+-DCIMGUI_USE_OPENGL3
