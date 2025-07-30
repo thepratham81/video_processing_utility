@@ -4,6 +4,8 @@
 #define IMPLEMENT_VECTOR
 #include "vector.h"
 
+#include "subprocess.h" 
+
 #define MAX_BUF_SIZE 1 << 8
 #define video_add_filter(dst, x)                                               \
     do                                                                         \
@@ -142,4 +144,112 @@ void video_change_framerate(Video* video, size_t framerate)
 void remove_audio(Video* video)
 {
     video_add_etc(video, "-an");
+}
+
+// TODO: This code expect no error occor.
+unsigned char* video_get_thumbnail(const char* file_name, size_t* outlen)
+{
+    // ffmpeg -i input.mp4 -ss 00:00:01 -vframes 1 -f image2pipe -vcodec mjpeg -
+    const char* command[] = {
+        "/usr/bin/ffmpeg",
+        "-i",
+        file_name,
+        "-ss",
+        "00:00:01",
+        "-vframes",
+        "1",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "mjpeg",
+        "-",
+        NULL
+    };
+    
+    struct subprocess_s process;
+    int result = subprocess_create(command,
+                                   subprocess_option_search_user_path|
+                                       subprocess_option_no_window,
+                                   &process);
+    if (result != 0)
+    {
+        *outlen = 0;
+        return NULL;
+    }
+    
+    int bytes_read;
+    size_t capacity = (1 << 20);  // 1MB 
+    size_t index = 0;
+    #define CHUNK (1<<10)  // 1KB chunks
+    
+    unsigned char* data = malloc(capacity);
+    if (!data) {
+        *outlen = 0;
+        subprocess_destroy(&process);
+        return NULL;
+    }
+    FILE * f = subprocess_stdout(&process); 
+    do
+    {
+        printf("Output len: %ld\n", index);
+        fflush(stdout);
+        
+        // Read from stdout, not stderr - this is where ffmpeg outputs the image data
+        bytes_read = fread(data+index, 1, CHUNK,f);
+        if (bytes_read > 0) {
+            index += bytes_read;
+            
+            // Check if we need to expand buffer
+            if (index + CHUNK > capacity) {
+                capacity <<= 1;
+                unsigned char* temp = realloc(data, capacity);
+                if (!temp) {
+                    free(data);
+                    *outlen = 0;
+                    subprocess_destroy(&process);
+                    return NULL;
+                }
+                data = temp;
+            }
+        }
+    } while (bytes_read > 0);
+
+    *outlen = index;
+    if (index == 0) {
+        free(data);
+        return NULL;
+    }
+
+    return data;
+}
+
+static float video_duration(const char *file_name) {
+    //TODO: get more info about video
+    const char *command[] = {
+    "/usr/bin/ffprobe",
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    file_name,
+    NULL
+    };
+    
+    struct subprocess_s subprocess;
+    int result = subprocess_create(command,subprocess_option_inherit_environment,
+                                    // subprocess_option_search_user_path|subprocess_option_no_window,
+                                   &subprocess);
+    float video_length;
+    if(result!=0){
+        fprintf(stderr,"Error: Unable to create subprocess");
+        return -1.0;
+    }
+    FILE* p_stdout = subprocess_stdout(&subprocess);
+    if(!p_stdout) return 0; 
+    if(fscanf(p_stdout, "%f",&video_length)==1){
+        return video_length;
+    }
+    return -1;
 }
