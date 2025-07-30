@@ -147,21 +147,22 @@ void remove_audio(Video* video)
 }
 
 // TODO: This code expect no error occor.
-unsigned char* video_get_thumbnail(const char* file_name, size_t* outlen)
+void* video_get_thumbnail(const char* file_name, size_t* outlen)
 {
     // ffmpeg -i input.mp4 -ss 00:00:01 -vframes 1 -f image2pipe -vcodec mjpeg -
+    // ffmpeg -i input_video.mp4 -ss 00:00:10 -vframes 1 -f image2pipe -vcodec png -
     const char* command[] = {
         "/usr/bin/ffmpeg",
         "-i",
         file_name,
         "-ss",
-        "00:00:01",
+        "00:00:03",
         "-vframes",
         "1",
         "-f",
         "image2pipe",
         "-vcodec",
-        "mjpeg",
+        "bmp",
         "-",
         NULL
     };
@@ -191,10 +192,6 @@ unsigned char* video_get_thumbnail(const char* file_name, size_t* outlen)
     FILE * f = subprocess_stdout(&process); 
     do
     {
-        printf("Output len: %ld\n", index);
-        fflush(stdout);
-        
-        // Read from stdout, not stderr - this is where ffmpeg outputs the image data
         bytes_read = fread(data+index, 1, CHUNK,f);
         if (bytes_read > 0) {
             index += bytes_read;
