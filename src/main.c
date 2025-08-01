@@ -24,7 +24,7 @@
 #define igGetIO igGetIO_Nil
 #define IM_COL32(R, G, B, A)                                                   \
     (((ImU32)(A) << 24) | ((ImU32)(B) << 16) | ((ImU32)(G) << 8) | ((ImU32)(R)))
-
+#define THUMBNAIL_SIZE 300
 GLFWwindow* window;
 GLuint thumbnail_texture = 0;
 
@@ -68,8 +68,7 @@ void drop_callback(GLFWwindow* window, int count, const char** paths)
     if(!outlen) puts("Unable to load thumbnail");
 
     load_texture_from_memory(data, outlen, &pre_data.texture, &pre_data.width,&pre_data.height);
-    #define MAX_IMAGE_DIMENSION 300
-    ImVec2 res = fit_image(MAX_IMAGE_DIMENSION, (ImVec2){pre_data.width,pre_data.height});
+    ImVec2 res = fit_image(THUMBNAIL_SIZE, (ImVec2){pre_data.width,pre_data.height});
     pre_data.width = res.x;
     pre_data.height = res.y;
     free(data);
@@ -159,24 +158,21 @@ ImVec2 get_aspect_ratio(ImVec2 dimension)
     int hcf = gcd(dimension.x,dimension.y);
     return (ImVec2){dimension.x/hcf,dimension.y/hcf};
 }
-
-ImVec2 fit_image(int square_size,ImVec2 input)
+ImVec2 fit_image(int square_size, ImVec2 input)
 {
     ImVec2 res = get_aspect_ratio(input);
     float ratio = res.x/res.y;
-
-    //fix the width
-    float width  = square_size;
-    float height = input.x/ratio;
-
+    
+    float width = square_size;
+    float height = width/ratio;
+    
     if(height > square_size)
     {
-        //fix the height
-        height =  square_size;
-        width = square_size*ratio;
+        height = square_size;
+        width = height * ratio; 
     }
-
-    return (ImVec2){width,height};
+    
+    return (ImVec2){width, height};
 }
 
 void init()
@@ -274,6 +270,7 @@ typedef struct
     bool filpv;
     bool strip_audio;
     bool stereo_to_mono;
+    float angle;
 } SingleClickMenu;
 
 void show_single_click_menu(SingleClickMenu* m)
@@ -300,7 +297,27 @@ void show_single_click_menu(SingleClickMenu* m)
         igSameLine(0.0f, -1.0f);
 
         toggle_button(icon_rotate_custom, &e, 3);
+        
+        switch(e)
+        {
+            case 0:
+            {
+              m->angle = 90;
+              break;
+            }
 
+            case 1:
+            {
+              m->angle = 180;
+              break;
+            }
+
+            case 2:
+            {
+              m->angle = 270;
+              break;
+            }
+        }
         // igPopFont();
 
         if (e == 3)
@@ -336,16 +353,48 @@ void show_single_click_menu(SingleClickMenu* m)
 
     igEndGroup();
 }
+void show_thumbnail(GLuint texture,ImVec2 size, int width, int height)
+{
+    if (igInvisibleButton("##thumbnail",size, 0))
+    {
+        printf("Invisible button was clicked!\n");
+    }
+    
+    ImDrawList* draw_list = igGetWindowDrawList();
+    ImVec2 button_min, button_max;
+    igGetItemRectMin(&button_min);
+    igGetItemRectMax(&button_max);
+    ImDrawList_AddRectFilled(draw_list, button_min, button_max, IM_COL32(40, 40, 40, 255), 0, 0);
+    
+    
+    float dx = (size.x - width) / 2.0f;
+    float dy = (size.y - height) / 2.0f;
+    
+    ImVec2 image_min = {button_min.x + dx, button_min.y + dy};
+    ImVec2 image_max = {image_min.x + width, image_min.y + height};
+    
+    ImTextureRef tex_ref = {._TexData = NULL, ._TexID = (ImTextureID)texture};
+    ImDrawList_AddImage(draw_list, tex_ref, image_min, image_max,
+                        (ImVec2){0, 0}, (ImVec2){1, 1}, 0xFFFFFFFF);
+}
 
 void show_preview_window()
 {
 
 
     igBeginGroup();
-    ImTextureRef tex_ref = {._TexData = NULL,
-                            ._TexID = (ImTextureID)pre_data.texture};
-    igImage(tex_ref, (ImVec2){pre_data.width,pre_data.height}, (ImVec2){0, 0},
-            (ImVec2){1, 1});
+    if(pre_data.texture)
+    {
+        show_thumbnail(pre_data.texture,(ImVec2){THUMBNAIL_SIZE,THUMBNAIL_SIZE},pre_data.width,pre_data.height);
+    }
+    else
+    {
+        if(igButton("Drag and Drop\n  or click", (ImVec2){THUMBNAIL_SIZE,THUMBNAIL_SIZE}))
+        {
+
+        }
+    }
+
     #if 0
     if (igBeginTable("video_info", 2,
                      ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg,
@@ -472,7 +521,7 @@ int main(int argc, char* argv[])
 
                     if (igBeginTabItem("Remix", NULL, 0))
                     {
-
+                       
                         igEndTabItem();
                     }
                     igEndTabBar();
@@ -480,7 +529,6 @@ int main(int argc, char* argv[])
                 igEnd();
             }
         }
-        // ImVec2 pos;
         // igGetWindowPos(&pos);
         // pos.x += 43;
         // pos.y += 34;
