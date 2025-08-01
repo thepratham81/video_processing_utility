@@ -24,12 +24,24 @@
 #define igGetIO igGetIO_Nil
 #define IM_COL32(R, G, B, A)                                                   \
     (((ImU32)(A) << 24) | ((ImU32)(B) << 16) | ((ImU32)(G) << 8) | ((ImU32)(R)))
-GLFWwindow* window;
 
+GLFWwindow* window;
+GLuint thumbnail_texture = 0;
+
+typedef struct 
+{
+    GLuint texture;
+    int width;
+    int height;
+}PreviewData;
+
+PreviewData pre_data = {0};
 #define tooltip(x)                                                             \
     if (igIsItemHovered(ImGuiHoveredFlags_DelayShort))                         \
     igSetTooltip(x)
 
+bool load_texture_from_memory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height);
+ImVec2 fit_image(int square_size,ImVec2 input);
 void drop_callback(GLFWwindow* window, int count, const char** paths)
 {
     if (count > 1)
@@ -40,10 +52,28 @@ void drop_callback(GLFWwindow* window, int count, const char** paths)
     }
      
 #define is_video(x) true
-    if (!is_video(paths[i]))
+    if (!is_video(paths[0]))
     {
         puts("Only video file is allowed");
+        return;
     }
+    if (pre_data.texture)
+        glDeleteTextures(1, &pre_data.texture);
+
+    size_t outlen;
+    const int ss = 300;
+    unsigned char* data =
+        video_get_thumbnail(paths[0],&outlen);
+
+    if(!outlen) puts("Unable to load thumbnail");
+
+    load_texture_from_memory(data, outlen, &pre_data.texture, &pre_data.width,&pre_data.height);
+    #define MAX_IMAGE_DIMENSION 300
+    ImVec2 res = fit_image(MAX_IMAGE_DIMENSION, (ImVec2){pre_data.width,pre_data.height});
+    pre_data.width = res.x;
+    pre_data.height = res.y;
+    free(data);
+
 }
 //https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples#example-for-opengl-users
 bool load_texture_from_memory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height)
@@ -173,7 +203,7 @@ void init()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(
         glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
-    window = glfwCreateWindow((int)(700 * main_scale), (int)(600 * main_scale),
+    window = glfwCreateWindow((int)(700 * main_scale), (int)(400 * main_scale),
                               "VPU", NULL, NULL);
     if (!window)
     {
@@ -309,31 +339,14 @@ void show_single_click_menu(SingleClickMenu* m)
 
 void show_preview_window()
 {
-    #define MAX_IMAGE_DIMENSION 300
 
-    static bool is_initilise = false;
-    static GLuint texture;
-    static int width, height;
-
-    if (!is_initilise)
-    {
-        size_t outlen;
-        const int ss = 300;
-        unsigned char* data = video_get_thumbnail("/home/user/Videos/input.mp4",&outlen);
-        if(!outlen) puts("Unable to load thumbnail");
-        load_texture_from_memory(data, outlen, &texture, &width, &height);
-        ImVec2 res = fit_image(MAX_IMAGE_DIMENSION, (ImVec2){width,height});
-        width = res.x;
-        height = res.y;
-        is_initilise = true;
-        free(data);
-    }
 
     igBeginGroup();
     ImTextureRef tex_ref = {._TexData = NULL,
-                            ._TexID = (ImTextureID)(intptr_t)texture};
-    igImage(tex_ref, (ImVec2){width, height}, (ImVec2){0, 0},
+                            ._TexID = (ImTextureID)pre_data.texture};
+    igImage(tex_ref, (ImVec2){pre_data.width,pre_data.height}, (ImVec2){0, 0},
             (ImVec2){1, 1});
+    #if 0
     if (igBeginTable("video_info", 2,
                      ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg,
                      (ImVec2){400, 0}, 0.0f))
@@ -355,9 +368,10 @@ void show_preview_window()
 
         igEndTable();
     }
-
+    #endif
     igEndGroup();
 }
+
 int main(int argc, char* argv[])
 {
     init();
@@ -434,7 +448,7 @@ int main(int argc, char* argv[])
                                           "Output file",
                                           data,
                                           sizeof(data),
-                                          (ImVec2){viewport->Size.x - 110, 0},
+                                          (ImVec2){viewport->Size.x - 120, 0},
                                           0,
                                           NULL,
                                           NULL
@@ -447,6 +461,7 @@ int main(int argc, char* argv[])
                         }
                         igEndGroup();
                         igEndTabItem();
+                        igButton("Render", (ImVec2){viewport->Size.x-20});
                     }
 
                     if (igBeginTabItem("Advance", NULL, 0))
