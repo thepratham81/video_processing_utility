@@ -1,13 +1,20 @@
+#ifdef _WIN32
+#include <windows.h>
+#include <wchar.h>
+#endif
+
+#include "tinyfiledialogs.h"
+#include <stdlib.h>
+#include <string.h>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 #include "cimgui_impl.h"
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <time.h>
 
-#ifdef _MSC_VER
-#include <windows.h>
-#endif
 
 #include <GL/gl.h>
 
@@ -15,6 +22,9 @@
 #include "stb_image.h"
 #include "icon.h"
 #include "moviec.c"
+#include "ui_font.h"
+#include "icon_font.h"
+#include "tinyfiledialogs.c"
 
 #ifdef IMGUI_HAS_IMSTR
 #define igBegin       igBegin_Str
@@ -53,19 +63,24 @@
 
 
 GLFWwindow* window;
-GLuint      thumbnail_texture = 0;
 ImFont*     default_font;        
 ImFont*     icon_font;        
 
+#define MAX_BUFFER_SIZE (1<<12)
 typedef struct 
 {
     GLuint texture;
+    char   input_file[MAX_BUFFER_SIZE];
+    float  video_length;
     int    width;
     int    height;
-}PreviewData;
+    bool  output_dir_same_as_input;
+    char output_dir[MAX_BUFFER_SIZE];
+}Global_data;
 
-PreviewData pre_data = {0};
+Global_data global_data = {.output_dir_same_as_input=true};
 
+#define arr_len(x) (sizeof(x)/sizeof(x[0]))
 #define tool_tip_size 16
 #define tooltip(x)                                                             \
     if (igIsItemHovered(ImGuiHoveredFlags_DelayShort))                         \
@@ -76,7 +91,86 @@ PreviewData pre_data = {0};
     }
 
 bool   load_texture_from_memory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height);
+
+void split_path(const char *path, char **dir, char **filename);
 ImVec2 fit_image(int square_size,ImVec2 input);
+
+#if defined(_WIN32) || defined(_WIN64)
+
+void get_video_folder(char *path) {
+    SHGetFolderPathA(NULL, CSIDL_MYVIDEO, NULL, 0, path);
+}
+
+void get_executable_path(char* path) {
+    GetModuleFileNameA(NULL, path, MAX_BUFFER_SIZE);
+}
+
+#else
+
+void get_video_folder(char *path) {
+    const char *home = getenv("HOME");
+    if (home != NULL) {
+        snprintf(path, MAX_BUFFER_SIZE, "%s/Videos", home);
+    } else {
+        strcpy(path, "./Videos");
+    }
+}
+
+
+void get_executable_path(char* path) {
+    readlink("/proc/self/exe", path, MAX_BUFFER_SIZE);
+}
+
+#endif
+
+char *str_dup(const char *s) {
+    size_t len = strlen(s) + 1;
+    char *d = malloc(len);
+    if (!d) return 0;
+    memcpy(d, s, len);
+    return d;
+}
+
+void populate_thumbnail(const char* path)
+{
+    if (global_data.texture)
+        glDeleteTextures(1, &global_data.texture);
+
+    char ffmpeg_path[MAX_BUFFER_SIZE];
+    char ffprobe_path[MAX_BUFFER_SIZE];
+
+    char exe_dir[MAX_BUFFER_SIZE]; 
+    get_executable_path(exe_dir);
+    char*dir;
+    char*file;
+    split_path(exe_dir, &dir, &file);
+    #ifdef _WIN32
+
+        snprintf(ffmpeg_path, sizeof(ffmpeg_path), "%s\\ffmpeg.exe",dir);
+        snprintf(ffprobe_path, sizeof(ffprobe_path), "%s\\ffprobe.exe",dir);
+    #else
+        snprintf(ffmpeg_path, sizeof(ffmpeg_path), "%s/ffmpeg",dir);
+        snprintf(ffprobe_path, sizeof(ffprobe_path), "%s/ffprobe",dir);
+    #endif
+    free(dir);
+    free(file);
+    size_t outlen;
+    const int ss = 300;
+    unsigned char* data =
+        video_get_thumbnail(ffmpeg_path,path,&outlen);
+
+    if(!outlen) puts("Unable to load thumbnail");
+
+    load_texture_from_memory(data, outlen, &global_data.texture, &global_data.width,&global_data.height);
+    ImVec2 res      = fit_image(THUMBNAIL_SIZE, (ImVec2){global_data.width,global_data.height});
+    global_data.width  = res.x;
+    global_data.height = res.y;
+    strncpy(global_data.input_file,path,sizeof(global_data.input_file)-1);
+    global_data.input_file[sizeof(global_data.input_file)-1] = '\0';
+    global_data.video_length = video_get_duration(ffprobe_path,global_data.input_file);
+    free(data);
+}
+
 void   drop_callback(GLFWwindow* window, int count, const char** paths)
 {
     if (count > 1)
@@ -92,22 +186,7 @@ void   drop_callback(GLFWwindow* window, int count, const char** paths)
         puts("Only video file is allowed");
         return;
     }
-    if (pre_data.texture)
-        glDeleteTextures(1, &pre_data.texture);
-
-    size_t outlen;
-    const int ss = 300;
-    unsigned char* data =
-        video_get_thumbnail(paths[0],&outlen);
-
-    if(!outlen) puts("Unable to load thumbnail");
-
-    load_texture_from_memory(data, outlen, &pre_data.texture, &pre_data.width,&pre_data.height);
-    ImVec2 res      = fit_image(THUMBNAIL_SIZE, (ImVec2){pre_data.width,pre_data.height});
-    pre_data.width  = res.x;
-    pre_data.height = res.y;
-    free(data);
-
+    populate_thumbnail(paths[0]);
 }
 //https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples#example-for-opengl-users
 bool load_texture_from_memory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height)
@@ -319,12 +398,10 @@ void init()
 
     igStyleColorsDark(NULL);
 
-    default_font = ImFontAtlas_AddFontFromFileTTF(ioptr->Fonts, "./font.ttf",0, NULL, NULL);
+    default_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, font_ttf, font_ttf_len, 0, NULL, NULL);
     ioptr->FontDefault = default_font;
 
-    icon_font = ImFontAtlas_AddFontFromFileTTF(
-        ioptr->Fonts, "/home/user/programming/guis/vpu/asset/icon.ttf",
-        16.0f, NULL, NULL);
+    icon_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, icon_ttf, icon_ttf_len, 0, NULL, NULL);
 
     bool quit = false;
     UNUSED(quit);
@@ -332,7 +409,6 @@ void init()
 
 typedef struct
 {
-    bool  rotate;
     bool  fliph;
     bool  flipv;
     bool  strip_audio;
@@ -341,6 +417,159 @@ typedef struct
     float angle;
 } SingleClickMenu;
 
+typedef struct 
+{
+    bool is_rendring; 
+    bool stop_rendering;
+    float progress;
+    void(*callback)(VideoProgress*,void*);
+    SingleClickMenu* options;
+}RenderWidgetData;
+
+void render_callback(VideoProgress* vp,void* arg)
+{
+    RenderWidgetData* user_data = arg;
+    user_data->is_rendring = true;
+    float total_processed_sec =  (vp->total_processed/1000000.0f);
+    user_data->progress = total_processed_sec/global_data.video_length;
+
+    if(vp->is_finished)
+    {
+
+        user_data->progress = 1.0f;
+        user_data->is_rendring = false;
+    }
+}
+
+void split_path(const char *path, char **dir, char **filename) {
+    // Find the last occurrence of '/' or '\'
+    const char *last_slash = strrchr(path, '/');
+    const char *last_backslash = strrchr(path, '\\');
+
+    // Use whichever comes last (for cross-platform compatibility)
+    const char *separator = (last_slash > last_backslash) ? last_slash : last_backslash;
+
+    if (separator == NULL) {
+        // No separator found, entire path is filename
+        *dir = str_dup(".");
+        *filename = str_dup(path);
+    } else {
+        // Split at the separator
+        size_t dir_len = separator - path;
+        *dir = malloc(dir_len + 1);
+        strncpy(*dir, path, dir_len);
+        (*dir)[dir_len] = '\0';
+
+        *filename = str_dup(separator + 1);
+    }
+}
+const char* get_extension(const char* filename) {
+    const char* dot = strrchr(filename, '.');
+    if (!dot || dot == filename) {
+        return ""; 
+    }
+    return dot;
+}
+
+void *jh_render_video(void *arg)
+{
+
+    RenderWidgetData* user_data = arg;
+    SingleClickMenu opt= *user_data->options;
+    Video v;
+    video_init(&v,global_data.input_file);
+    if(opt.fliph) video_fliph(&v);
+        
+    video_scale_volume(&v,10);
+    if(opt.flipv) video_flipv(&v);
+    if(opt.strip_audio) video_remove_audio(&v);
+    if(opt.angle!=0.0f) video_rotate(&v,opt.angle);
+    if(opt.volume!=100) video_scale_volume(&v, opt.volume);
+    if(opt.stereo_to_mono) video_stereo_to_mono(&v);
+    char output[MAX_BUFFER_SIZE]={0};
+    char time_stamp[100] = {0};
+    const char* ext = get_extension(global_data.input_file);
+
+    time_t t;
+    struct tm *tm_info;
+
+    t = time(NULL);
+    tm_info = localtime(&t);
+
+    strftime(time_stamp,sizeof(time_stamp), "%Y-%m-%d_%H.%M.%S", tm_info);
+    
+    if(global_data.output_dir_same_as_input)
+    {
+        snprintf(output, sizeof(output),"%s_%s%s",global_data.input_file,time_stamp,ext);
+    }
+    else
+    {
+        char* input_dir = NULL;
+        char* file_name = NULL;
+        split_path(global_data.input_file,&input_dir,&file_name);
+        snprintf(output, sizeof(output), "%s/%s_%s%s",global_data.output_dir,file_name,time_stamp,ext);
+        free(input_dir);
+        free(file_name);
+    }
+    char ffmpeg_path[MAX_BUFFER_SIZE];
+    char exe_dir[MAX_BUFFER_SIZE]; 
+    get_executable_path(exe_dir);
+    char*dir;
+    char*file;
+    split_path(exe_dir, &dir, &file);
+
+    #ifdef _WIN32
+
+        snprintf(ffmpeg_path, sizeof(ffmpeg_path), "%s\\ffmpeg.exe",dir);
+    #else
+        snprintf(ffmpeg_path, sizeof(ffmpeg_path), "%s/ffmpeg",dir);
+    #endif
+
+    free(dir);
+    free(file);
+    video_render(ffmpeg_path,&v,output,user_data->callback,user_data,&user_data->stop_rendering);
+    return NULL;
+}
+void show_render(SingleClickMenu* single_click_menu,ImVec2 size)
+{
+
+    static RenderWidgetData user_data = {.callback = render_callback,
+                                         .stop_rendering = false,
+                                         .progress = 0.0f,
+                                         .is_rendring = false,
+                                        };
+    size.x -= igGetStyle()->WindowPadding.x;
+    size.x -= igGetStyle()->ItemSpacing.x;
+    if(user_data.is_rendring)
+    {
+
+        size.x -= igGetStyle()->WindowPadding.x;
+        float button_size = 0.2*size.x; // 80:20
+        size.x -= button_size;
+        char tmp[100];
+        snprintf(tmp, sizeof(tmp), "%f",user_data.progress*100);
+        igProgressBar(user_data.progress,(ImVec2){size.x},tmp);
+        igSameLine(0.0f, -1.0f);
+        if(igButton("Cancle",(ImVec2){button_size}))
+        {
+            user_data.stop_rendering = true;
+        }
+
+        return;
+    }
+    
+    igBeginDisabled(!global_data.texture);
+    if(igButton("Render",(ImVec2){size.x}))
+    {
+        static pthread_t t;
+
+        user_data.options = single_click_menu,
+        pthread_create(&t, NULL, jh_render_video, (void*)&user_data);
+    }
+    igEndDisabled();
+
+
+}
 void show_single_click_menu(SingleClickMenu* m)
 {
     #define big_icon_size 70
@@ -447,6 +676,22 @@ void show_single_click_menu(SingleClickMenu* m)
     jh_radio_button(icon_25_down,&group_volume,3 ,size);//igSameLine(0.0f, -1.0f);
     tooltip("Decrease Volume by 25%%");
     igPopFont();
+    
+    switch(group_volume)
+    {
+        case 0:
+            m->volume = 150.0f;break;
+        case 1:
+            m->volume = 50.0f;break;
+        case 2:
+            m->volume = 125.0f;break;
+        case 3:
+            m->volume = 75.0f;break;
+        default:
+            m->volume = 100.0f;
+    }
+
+
 
     igPushFont(icon_font,big_icon_size);
 
@@ -474,6 +719,8 @@ void show_single_click_menu(SingleClickMenu* m)
     igEndGroup();
     igPopStyleColor(1); // The parameter is how many colors to pop
 }
+
+//this funtion is generated by claude
 void jh_thumbnail(GLuint texture, ImVec2 size, int width, int height, 
                    float rotation_degrees,bool vflip,bool hflip)
 {
@@ -557,21 +804,50 @@ void jh_thumbnail(GLuint texture, ImVec2 size, int width, int height,
                                uv1, uv2, uv3, uv4, 0xFFFFFFFF);
     }
 }
+void show_output_section(ImVec2 size)
+{
 
+    igBeginGroup();
+    igCheckbox("Output dir same as input dir", &global_data.output_dir_same_as_input);
+    size.x -= 2*igGetStyle()->WindowPadding.x;
+    size.x -= igGetStyle()->ItemSpacing.x;
+    float button_size = 0.2*size.x; // 80:20
+    size.x -= button_size;
+
+    if (!global_data.output_dir_same_as_input)
+    {
+
+        igInputTextEx("##", "Output file", global_data.output_dir, sizeof(global_data.output_dir), size,
+                      0, NULL, NULL);
+        igSameLine(0.0f, -1.0f);
+
+        if (igButton("Browse", (ImVec2){button_size}))
+        {
+            char const* selected_folder = tinyfd_selectFolderDialog(
+            "Output Directory","");
+            if(selected_folder)
+            {
+                strncpy(global_data.output_dir,selected_folder,sizeof(global_data.output_dir)-1);
+                global_data.output_dir[sizeof(global_data.output_dir)-1] = '\0';
+            }
+        }
+    }
+    igEndGroup();
+}
 void show_preview_window(int angle,bool fliph,bool flipv)
 {
 
 
     igBeginGroup();
-    if (pre_data.texture)
+    if (global_data.texture)
     {
-        jh_thumbnail(pre_data.texture,
-                       (ImVec2){THUMBNAIL_SIZE, THUMBNAIL_SIZE}, pre_data.width,
-                       pre_data.height, angle, fliph, flipv);
+        jh_thumbnail(global_data.texture,
+                       (ImVec2){THUMBNAIL_SIZE, THUMBNAIL_SIZE}, global_data.width,
+                       global_data.height, angle, fliph, flipv);
         if(igButton("Remove Video",(ImVec2){0}))
         {
-            glDeleteTextures(1,&pre_data.texture);
-            pre_data.texture = 0;
+            glDeleteTextures(1,&global_data.texture);
+            global_data.texture = 0;
         }
     }
     else
@@ -580,7 +856,22 @@ void show_preview_window(int angle,bool fliph,bool flipv)
                      (ImVec2){THUMBNAIL_SIZE, THUMBNAIL_SIZE}))
         {
 
-            printf("%f\n",igGetStyle()->WindowPadding.x);
+            char const* supported_file[] = {"*.mp4", "*.avi", "*.mkv", "*.mov",
+                                             "*.wmv", "*.flv", "*.webm"};
+            const int total_pattern = arr_len(supported_file);
+            char const* selected_file = tinyfd_openFileDialog(
+                "Select a video file", 
+                "",            
+                total_pattern, 
+                supported_file, 
+                "Video Files", 
+                0              
+            );
+            if(selected_file)
+            {
+                populate_thumbnail(selected_file);
+            }
+
         }
     }
 
@@ -613,7 +904,6 @@ void show_preview_window(int angle,bool fliph,bool flipv)
 int main(int argc, char* argv[])
 {
     init();
-
 
     glfwSetDropCallback(window, drop_callback);
 
@@ -678,30 +968,9 @@ int main(int argc, char* argv[])
 
                         igDummy((ImVec2){0, 20});
 
-                        igBeginGroup();
-                        igCheckbox("Output dir same as input dir", &input);
-                        float p = 2*igGetStyle()->ItemSpacing.x + igGetStyle()->WindowPadding.x;
-                        if (!input)
-                        {
-
-                            igInputTextEx("##",
-                                          "Output file",
-                                          data,
-                                          sizeof(data),
-                                          (ImVec2){viewport->Size.x-140-p, 0},
-                                          0,
-                                          NULL,
-                                          NULL
-                                          );
-                            igSameLine(0.0f, -1.0f);
-
-                            if (igButton("Browse", (ImVec2){140}))
-                            {
-                            }
-                        }
-                        igEndGroup();
+                        show_output_section((ImVec2){viewport->Size.x,0});
+                        show_render(&m,viewport->Size);
                         igEndTabItem();
-                        igButton("Render", (ImVec2){viewport->Size.x-(igGetStyle()->ItemSpacing.x + igGetStyle()->WindowPadding.x)});
                     }
 
                     if (igBeginTabItem("Advance", NULL, 0))
