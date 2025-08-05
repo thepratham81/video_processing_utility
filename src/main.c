@@ -338,7 +338,7 @@ void init()
 #endif
 
     // just an extra window hint for resize
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(
         glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
     window = glfwCreateWindow((int)(WINDOW_WIDTH * main_scale), (int)(WINDOW_HEIGHT* main_scale),
@@ -475,6 +475,8 @@ void *jh_render_video(void *arg)
 {
 
     RenderWidgetData* user_data = arg;
+
+    user_data->progress = 0;
     SingleClickMenu opt= *user_data->options;
     Video v;
     video_init(&v,global_data.input_file);
@@ -528,6 +530,8 @@ void *jh_render_video(void *arg)
     free(dir);
     free(file);
     video_render(ffmpeg_path,&v,output,user_data->callback,user_data,&user_data->stop_rendering);
+    user_data->is_rendring = false;
+    user_data->progress = 0;
     return NULL;
 }
 void show_render(SingleClickMenu* single_click_menu,ImVec2 size)
@@ -843,7 +847,7 @@ void show_preview_window(int angle,bool fliph,bool flipv)
     {
         jh_thumbnail(global_data.texture,
                        (ImVec2){THUMBNAIL_SIZE, THUMBNAIL_SIZE}, global_data.width,
-                       global_data.height, angle, fliph, flipv);
+                       global_data.height, angle, flipv, fliph);
         if(igButton("Remove Video",(ImVec2){0}))
         {
             glDeleteTextures(1,&global_data.texture);
@@ -987,34 +991,11 @@ int main(int argc, char* argv[])
                     igEndTabBar();
                 }
                 
-                    // bool clicked = igButton("somebutton",(ImVec2){0,0});
                 igEnd();
             }
         }
-        // igGetWindowPos(&pos);
-        // pos.x += 43;
-        // pos.y += 34;
-        // igSetNextWindowPos(pos, 0, (ImVec2){0, 0});
-        static bool hidden = true;
-        if (!hidden && igBegin("Preview", NULL, 0))
-        {
-
-            igBeginTabBar("maadsf", 0);
-            {
-                if (igBeginTabItem("asf", NULL, 0))
-                {
-
-                    igText("s900");
-                    igEndTabItem();
-                }
-                igEndTabBar();
-            }
-
-            igEnd();
-        }
-
-        // render
         igRender();
+
 
         glfwMakeContextCurrent(window);
         glViewport(0, 0, (int)ioptr->DisplaySize.x, (int)ioptr->DisplaySize.y);
