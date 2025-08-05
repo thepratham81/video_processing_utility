@@ -252,8 +252,7 @@ static float video_get_duration(const char* ffprobe,const char *file_name) {
     };
     
     struct subprocess_s subprocess;
-    int result = subprocess_create(command,subprocess_option_inherit_environment,
-                                    // subprocess_option_search_user_path|subprocess_option_no_window,
+    int result = subprocess_create(command,subprocess_option_inherit_environment|subprocess_option_no_window,
                                    &subprocess);
     float video_length;
     if(result!=0){
@@ -349,6 +348,7 @@ void video_render
 
     vp.is_finished = false;
     vp.total_processed = 0;
+    vp.is_finished = false;
     while(subprocess_alive(&process))
     {
         if(*stop_rendering)
