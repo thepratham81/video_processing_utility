@@ -398,11 +398,19 @@ void init()
 
     igStyleColorsDark(NULL);
 
-    default_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, font_ttf, font_ttf_len, 0, NULL, NULL);
+    ImFontConfig * font_cfg = ImFontConfig_ImFontConfig();
+    // ImFontConfig font_cfg_ = {.FontDataOwnedByAtlas = false};
+    //
+    // font_cfg_ = *font_cfg;
+    // font_cfg_.FontDataOwnedByAtlas = false;
+
+    font_cfg->FontDataOwnedByAtlas = false;
+    default_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, font_ttf, font_ttf_len, 0,font_cfg, NULL);
     ioptr->FontDefault = default_font;
 
-    icon_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, icon_ttf, icon_ttf_len, 0, NULL, NULL);
+    icon_font = ImFontAtlas_AddFontFromMemoryTTF(ioptr->Fonts, icon_ttf, icon_ttf_len, 0,font_cfg, NULL);
 
+    ImFontConfig_destroy(font_cfg);
     bool quit = false;
     UNUSED(quit);
 }
