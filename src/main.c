@@ -1,29 +1,36 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <wchar.h>
+#else
+#define _POSIX_C_SOURCE 200112L
+#include <unistd.h>
 #endif
 
-#include "tinyfiledialogs.h"
 #include <stdlib.h>
 #include <string.h>
-#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include "cimgui.h"
-#include "cimgui_impl.h"
-#include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <time.h>
 
-
 #include <GL/gl.h>
+#include <GLFW/glfw3.h>
+
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include "cimgui.h"
+#include "cimgui_impl.h"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+
+
 #include "icon.h"
 #include "moviec.c"
 #include "ui_font.h"
 #include "icon_font.h"
+
 #include "tinyfiledialogs.c"
 
 #ifdef IMGUI_HAS_IMSTR
@@ -192,9 +199,11 @@ void   drop_callback(GLFWwindow* window, int count, const char** paths)
 bool load_texture_from_memory(const void* data, size_t data_size, GLuint* out_texture, int* out_width, int* out_height)
 {
     // Load from file
-    int image_width = 0;
-    int image_height = 0;
-    unsigned char* image_data = stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
+    int image_width           = 0;
+    int image_height          = 0;
+    unsigned char* image_data =
+        stbi_load_from_memory((const unsigned char*)data,(int)data_size,
+                              &image_width, &image_height, NULL, 4);
     if (image_data == NULL)
         return false;
 
@@ -213,8 +222,8 @@ bool load_texture_from_memory(const void* data, size_t data_size, GLuint* out_te
     stbi_image_free(image_data);
 
     *out_texture = image_texture;
-    *out_width = image_width;
-    *out_height = image_height;
+    *out_width   = image_width;
+    *out_height  = image_height;
 
     return true;
 }
@@ -224,19 +233,26 @@ bool load_texture_from_file(const char* file_name, GLuint* out_texture, int* out
     FILE* f = fopen(file_name, "rb");
     if (f == NULL)
         return false;
+
     fseek(f, 0, SEEK_END);
     size_t file_size = (size_t)ftell(f);
     if (file_size == -1)
         return false;
     fseek(f, 0, SEEK_SET);
+
     void* file_data = malloc(file_size);
+    if(!file_data) goto fail;
+
     fread(file_data, 1, file_size, f);
-    fclose(f);
     bool ret = load_texture_from_memory(file_data, file_size, out_texture, out_width, out_height);
     free(file_data);
+    fclose(f);
+
     return ret;
+fail:
+    fclose(f);
+    return false;
 }
-// FIXME:it should diselct when pressed twice
 
 bool jh_chk_button(const char* label, bool* status,ImVec2 size)
 {
@@ -247,7 +263,6 @@ bool jh_chk_button(const char* label, bool* status,ImVec2 size)
     }
 
     bool clicked = igButton(label,size);
-    // bool clicked = igSmallButton(label);
     if(*status)
     {
       igPopStyleColor(1);
@@ -487,7 +502,7 @@ void *jh_render_video(void *arg)
     user_data->progress = 0;
     SingleClickMenu opt= *user_data->options;
     Video v;
-    video_init(&v,global_data.input_file);
+    video_init(&v,global_data.input_file,NULL);
     if(opt.fliph) video_fliph(&v);
         
     video_scale_volume(&v,10);
@@ -816,6 +831,7 @@ void jh_thumbnail(GLuint texture, ImVec2 size, int width, int height,
                                uv1, uv2, uv3, uv4, 0xFFFFFFFF);
     }
 }
+
 void show_output_section(ImVec2 size)
 {
 
@@ -926,7 +942,6 @@ int main(int argc, char* argv[])
     clearColor.w = 1.00f;
 
     ImGuiIO* ioptr = igGetIO();
-
     ImGuiStyle* style = igGetStyle();
     ImVec4* colors = style->Colors;
     style->WindowRounding    = 1.0f;
