@@ -2,7 +2,6 @@
 #include <windows.h>
 #include <wchar.h>
 #else
-#define _POSIX_C_SOURCE 200112L
 #include <unistd.h>
 #endif
 
