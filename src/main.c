@@ -52,7 +52,7 @@
 
 #define THUMBNAIL_SIZE 400
 #define WINDOW_WIDTH   700
-#define WINDOW_HEIGHT  600
+#define WINDOW_HEIGHT  530
 
 #define jh_divide_space_x2(out, n)                                             \
     do                                                                         \
@@ -73,8 +73,8 @@
 
 
 GLFWwindow* window;
-ImFont*     default_font;        
-ImFont*     icon_font;        
+ImFont*     default_font;
+ImFont*     icon_font;
 
 #define MAX_BUFFER_SIZE (1<<12)
 typedef struct 
@@ -117,7 +117,8 @@ void get_executable_path(char* path) {
 
 #else
 
-void get_video_folder(char *path) {
+void get_video_folder(char *path)
+{
     const char *home = getenv("HOME");
     if (home != NULL) {
         snprintf(path, MAX_BUFFER_SIZE, "%s/Videos", home);
@@ -127,8 +128,12 @@ void get_video_folder(char *path) {
 }
 
 
-void get_executable_path(char* path) {
-    readlink("/proc/self/exe", path, MAX_BUFFER_SIZE);
+void get_executable_path(char* path)
+{
+    if(!path) return;
+    int n = readlink("/proc/self/exe", path, MAX_BUFFER_SIZE);
+    if(n<0) path[0] = '\0';
+    else path[n] = '\0';
 }
 
 #endif
@@ -356,6 +361,7 @@ void init()
 #endif
 
     // just an extra window hint for resize
+    // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(
         glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
@@ -467,7 +473,8 @@ void render_callback(VideoProgress* vp,void* arg)
     }
 }
 
-void split_path(const char *path, char **dir, char **filename) {
+void split_path(const char *path, char **dir, char **filename)
+{
     // Find the last occurrence of '/' or '\'
     const char *last_slash = strrchr(path, '/');
     const char *last_backslash = strrchr(path, '\\');
@@ -489,7 +496,9 @@ void split_path(const char *path, char **dir, char **filename) {
         *filename = str_dup(separator + 1);
     }
 }
-const char* get_extension(const char* filename) {
+
+const char* get_extension(const char* filename)
+{
     const char* dot = strrchr(filename, '.');
     if (!dot || dot == filename) {
         return ""; 
@@ -845,7 +854,8 @@ void show_output_section(ImVec2 size)
     float button_size = 0.2*size.x; // 80:20
     size.x -= button_size;
 
-    if (!global_data.output_dir_same_as_input)
+
+    igBeginDisabled(global_data.output_dir_same_as_input);
     {
 
         igInputTextEx("##", "Output file", global_data.output_dir, sizeof(global_data.output_dir), size,
@@ -862,6 +872,7 @@ void show_output_section(ImVec2 size)
                 global_data.output_dir[sizeof(global_data.output_dir)-1] = '\0';
             }
         }
+     igEndDisabled();
     }
     igEndGroup();
 }
@@ -890,9 +901,9 @@ void show_preview_window(int angle,bool fliph,bool flipv)
             char const* supported_file[] = {"*.mp4", "*.avi", "*.mkv", "*.mov",
                                              "*.wmv", "*.flv", "*.webm"};
             const int total_pattern = arr_len(supported_file);
-            char const* selected_file = tinyfd_openFileDialog(
+            char* selected_file = tinyfd_openFileDialog(
                 "Select a video file", 
-                "",            
+                NULL,            
                 total_pattern, 
                 supported_file, 
                 "Video Files", 
