@@ -3,10 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
+
 #define IMPLEMENT_VECTOR
 #include "vector.h"
 
 #include "subprocess.h" 
+#include "cJSON.c"
 
 typedef struct{
     uint64_t total_processed;
@@ -52,7 +56,10 @@ typedef struct
     char* me__m; /* arena like*/
 } Video;
 
-int video_init(Video* video, char* input)
+const int CMD__FLAG = subprocess_option_search_user_path|subprocess_option_no_window;
+
+void free_video(Video* video);
+int video_init(Video* video, char* input,FILE* log_file)
 {
 
     if (!input)
@@ -63,6 +70,8 @@ int video_init(Video* video, char* input)
     video->et__c     = Vector(*video->et__c);
     video->me__m     = Vector(*video->me__m);
     video->file_name = 0;
+    if (!video->v__f || !video->a__f || !video->et__c || !video->me__m)
+        goto fail;
     while(*input)
     {
         vector_append(video->me__m,*input++);
@@ -70,6 +79,12 @@ int video_init(Video* video, char* input)
 
     vector_append(video->me__m,'\0');
     return 0;
+
+fail:
+    if(log_file) fprintf(log_file,"[Error] unable to allocate memory\n");
+    free_video(video);
+    perror("malloc");
+    return -1;
 }
 
 void free_video(Video* video)
@@ -163,50 +178,20 @@ void video_remove_audio(Video* video)
     video_add_etc(video, "-an");
 }
 
-// TODO: This code expect no error occor.
-void* video_get_thumbnail(const char*ffmpeg,const char* file_name, size_t* outlen)
+void* slurp__stream(FILE* f,size_t* outlen)
 {
-    // ffmpeg -i input.mp4 -ss 00:00:01 -vframes 1 -f image2pipe -vcodec mjpeg -
-    // ffmpeg -i input_video.mp4 -ss 00:00:10 -vframes 1 -f image2pipe -vcodec png -
-    const char* command[] = {
-        ffmpeg,
-        "-i",
-        file_name,
-        "-ss",
-        "00:00:01",
-        "-vframes",
-        "1",
-        "-f",
-        "image2pipe",
-        "-vcodec",
-        "bmp",
-        "-",
-        NULL
-    };
-    
-    struct subprocess_s process;
-    int result = subprocess_create(command,
-                                   subprocess_option_search_user_path|
-                                       subprocess_option_no_window,
-                                   &process);
-    if (result != 0)
-    {
-        *outlen = 0;
-        return NULL;
-    }
-    
+
     int bytes_read;
     size_t capacity = (1 << 20);  // 1MB 
     size_t index = 0;
     #define CHUNK (1<<10)  // 1KB chunks
-    
+
     unsigned char* data = malloc(capacity);
     if (!data) {
         *outlen = 0;
-        subprocess_destroy(&process);
         return NULL;
     }
-    FILE * f = subprocess_stdout(&process); 
+
     do
     {
         bytes_read = fread(data+index, 1, CHUNK,f);
@@ -220,7 +205,6 @@ void* video_get_thumbnail(const char*ffmpeg,const char* file_name, size_t* outle
                 if (!temp) {
                     free(data);
                     *outlen = 0;
-                    subprocess_destroy(&process);
                     return NULL;
                 }
                 data = temp;
@@ -235,6 +219,36 @@ void* video_get_thumbnail(const char*ffmpeg,const char* file_name, size_t* outle
     }
 
     return data;
+
+}
+// TODO: This code expect no error occor.
+void* video_get_thumbnail(const char*ffmpeg,const char* file_name, size_t* outlen)
+{
+    const char* command[] = {
+        ffmpeg,
+        "-i",
+        file_name,
+        "-ss",
+        "00:00:03",
+        "-vframes",
+        "1",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "bmp",
+        "-",
+        NULL
+    }; 
+    struct subprocess_s process;
+    int result = subprocess_create(command,CMD__FLAG,&process);
+    if (result != 0)
+    {
+        *outlen = 0;
+        return NULL;
+    }
+    
+    FILE * f = subprocess_stdout(&process); 
+    return slurp__stream(f,outlen);
 }
 
 static float video_get_duration(const char* ffprobe,const char *file_name) {
@@ -250,16 +264,15 @@ static float video_get_duration(const char* ffprobe,const char *file_name) {
     file_name,
     NULL
     };
-    
-    struct subprocess_s subprocess;
-    int result = subprocess_create(command,subprocess_option_inherit_environment|subprocess_option_no_window,
-                                   &subprocess);
+     
+    struct subprocess_s process;
+    int result = subprocess_create(command,CMD__FLAG,&process);
     float video_length;
     if(result!=0){
         fprintf(stderr,"Error: Unable to create subprocess");
         return -1.0;
     }
-    FILE* p_stdout = subprocess_stdout(&subprocess);
+    FILE* p_stdout = subprocess_stdout(&process);
     if(!p_stdout) return 0; 
     if(fscanf(p_stdout, "%f",&video_length)==1){
         return video_length;
@@ -271,18 +284,12 @@ char* video_filename(Video* v)
 {
     return &v->me__m[v->file_name];
 }
-// static void _get_progress(const char *line, float video_duration_sec, float *progress) {
-//     long time_processed;
-//     if (sscanf(line, "out_time_ms=%ld", &time_processed) == 1)
-//     {
-//         *progre
-//     }
-// }
 
 void default_callback(VideoProgress *v, void *data){
     (void)data;
     (void)v;
 }
+
 static void _get_progress(const char *line, float video_duration_sec, float *progress) {
     long time_processed;
     if (sscanf(line, "out_time_ms=%ld", &time_processed) == 1) {
@@ -291,8 +298,10 @@ static void _get_progress(const char *line, float video_duration_sec, float *pro
         *progress = (seconds_processed /video_duration_sec) * 100.0;
     }
 }
-void video_render
-(char*ffmpeg,Video* v, char* output,void (*callback)(VideoProgress*, void*), void* user_data,bool* stop_rendering)
+
+void video_render(char* ffmpeg, Video* v, char* output,
+                  void (*callback)(VideoProgress*, void*), void* user_data,
+                  bool* stop_rendering)
 {
 
     int apply_video_filter = vector_length(v->v__f);
@@ -332,9 +341,7 @@ void video_render
 
     struct subprocess_s process;
     if(!callback) callback = default_callback;
-    int result = subprocess_create((const char * const *)cmd,
-                                   subprocess_option_search_user_path|subprocess_option_no_window,
-                                    &process);
+    int result = subprocess_create((const char * const *)cmd,CMD__FLAG,&process);
     if(result!=0)
     {
         vp.res = -1;
@@ -365,16 +372,149 @@ void video_render
     callback(&vp,user_data);
 }
 
+typedef struct
+{
+    uint64_t file_size;
+}VideoInfo;
+
+int get_json_key_count(cJSON *json_object)
+{
+    if (json_object == NULL || !cJSON_IsObject(json_object))
+    {
+        return -1; 
+    }
+    
+    return cJSON_GetArraySize(json_object);
+}
+
+char* bytes_to_humanreadable(uint64_t size)
+{
+
+#define make_str(buffer, fmt, size)                                            \
+    do                                                                         \
+    {                                                                          \
+        int n = snprintf(NULL, 0, fmt, size);                                  \
+        buffer = malloc(n + 1);                                                \
+        if (buffer)                                                            \
+            snprintf(buffer, n + 1, fmt, size);                                \
+    } while (0)
+
+    uint64_t kb = 1 << 10;
+    uint64_t mb = 1 << 20;
+    uint64_t gb = 1 << 30;
+    uint64_t tb = 1ULL << 40;
+    char* res   = NULL;
+
+    if(size >= tb)
+    {
+        make_str(res,"%.2fTB",(float)size/tb);
+        return res;
+    }
+
+    else if(size >= gb)
+    {
+        make_str(res,"%.2fGB",(float)size/gb);
+        return res;
+    }
+
+
+    else if(size >= mb)
+    {
+        make_str(res,"%.2fMB",(float)size/mb);
+        return res;
+    }
+
+    else if(size >= kb)
+    {
+        make_str(res,"%.2fKB",(float)size/kb);
+        return res;
+    }
+
+    else
+    {
+        make_str(res,"%ldB",size/kb);
+        return res;
+    }
+
+}
+
+int video_get_info(VideoInfo* inf, const char* input)
+{
+
+    struct subprocess_s process;
+    const char* cmd[] = {
+                        "ffprobe",
+                        "-v",
+                        "quiet",
+                        "-print_format",
+                        "json",
+                        "-show_format",
+                        "-show_streams",
+                        input,
+                        NULL
+                        };
+    int result = subprocess_create(cmd,CMD__FLAG,&process);
+    if (result != 0)
+        return -1;
+
+    
+    FILE* p_stdout  = subprocess_stdout(&process);
+    size_t outlen   = 0;
+    char* data      = slurp__stream(p_stdout, &outlen);
+    char* file_size = NULL;
+    if(!data) return -1;
+
+    cJSON* json = cJSON_Parse(data);
+
+    if (json == NULL)
+    {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            printf("Error: %s\n", error_ptr);
+            result = -1;
+            goto cleanup;
+        }
+    }
+
+    if(get_json_key_count(json)<=0)
+    {
+        result = -1;
+        goto cleanup;
+    }
+    
+    cJSON* format    = cJSON_GetObjectItem(json,   "format");
+    cJSON* size      = cJSON_GetObjectItem(format, "size");
+    if(size)
+    {
+
+        uint64_t sze = 0;;
+        sscanf(size->valuestring,"%"SCNu64,&sze);
+        file_size = bytes_to_humanreadable(sze);
+    }
+
+    cJSON* no_of_stream = cJSON_GetObjectItem(format,"nb_streams");
+
+
+    result = 0;
+cleanup:
+    cJSON_Delete(json);
+    free(data);
+    free(file_size);
+    return result;
+}
+
 #if 0
 int main()
 {
     Video v;
-    video_init(&v,"/home/user/input.mp4");
-    video_rotate(&v,90);
-    video_fliph(&v);
-    video_flipv(&v);
-    video_rotate(&v,345);
-    video_scale_volume(&v,10);
-    generate_command(&v);
+    VideoInfo info;
+    video_get_info(&info,"/home/user/input.mp4");
+    // video_init(&v,"/home/user/input.mp4");
+    // video_rotate(&v,90);
+    // video_fliph(&v);
+    // video_flipv(&v);
+    // video_rotate(&v,345);
+    // video_scale_volume(&v,10);
+    // generate_command(&v);
 }
 #endif
