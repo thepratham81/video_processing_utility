@@ -567,6 +567,7 @@ void *jh_render_video(void *arg)
     video_render(ffmpeg_path,&v,output,user_data->callback,user_data,&user_data->stop_rendering);
     user_data->is_rendring = false;
     user_data->progress = 0;
+    free_video(&v);
     return NULL;
 }
 void show_render(SingleClickMenu* single_click_menu,ImVec2 size)
