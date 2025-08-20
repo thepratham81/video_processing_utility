@@ -587,7 +587,7 @@ void show_render(SingleClickMenu* single_click_menu,ImVec2 size)
         float button_size = 0.2*size.x; // 80:20
         size.x -= button_size;
         char tmp[100];
-        snprintf(tmp, sizeof(tmp), "%f",user_data.progress*100);
+        snprintf(tmp, sizeof(tmp), "%.2f",user_data.progress*100);
         igProgressBar(user_data.progress,(ImVec2){size.x},tmp);
         igSameLine(0.0f, -1.0f);
         if(igButton("Cancle",(ImVec2){button_size}))
