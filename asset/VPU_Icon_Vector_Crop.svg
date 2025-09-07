@@ -1,0 +1,20 @@
+<svg id="Crop" xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke: #000;
+        stroke-width: 10px;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <g>
+    <rect x="53" y="7" width="27" height="195" rx="5" ry="5"/>
+    <rect id="Rectangle_7_copy" data-name="Rectangle 7 copy" x="53" y="175" width="195" height="27" rx="5" ry="5"/>
+  </g>
+  <g>
+    <rect id="Rectangle_7_copy_3" data-name="Rectangle 7 copy 3" x="174" y="53" width="27" height="195" rx="5" ry="5"/>
+    <rect id="Rectangle_7_copy_2" data-name="Rectangle 7 copy 2" x="6" y="53" width="195" height="27" rx="5" ry="5"/>
+  </g>
+  <path id="Line_2" data-name="Line 2" class="cls-1" d="M67.355,188.352l-0.709-.7,167-168,0.71,0.7Z"/>
+</svg>

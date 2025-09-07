@@ -1,0 +1,25 @@
+<svg id="Thumbnail" xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke-width: 10px;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke: #000;
+      }
+
+      .cls-1, .cls-2 {
+        fill-rule: evenodd;
+      }
+
+      .cls-2, .cls-3 {
+        stroke-width: 1px;
+      }
+    </style>
+  </defs>
+  <path id="Frame" class="cls-1" d="M20,22H235a10,10,0,0,1,10,10V223a10,10,0,0,1-10,10H20a10,10,0,0,1-10-10V32A10,10,0,0,1,20,22Z"/>
+  <path id="Mountain" class="cls-2" d="M236,121V224L18,223V115L73,70l95,99Zm0,0V224L18,223V115L73,70l95,99Zm0,0V224L18,223V115L73,70l95,99ZM72,82l22,22L32,117Z"/>
+  <circle id="Sun" class="cls-3" cx="193" cy="65" r="23"/>
+</svg>

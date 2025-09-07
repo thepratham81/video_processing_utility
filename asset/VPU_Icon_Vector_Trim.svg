@@ -1,0 +1,34 @@
+<svg id="Trim" xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        fill: none;
+        stroke: #000;
+      }
+
+      .cls-1, .cls-2 {
+        stroke-width: 10px;
+      }
+
+      .cls-1, .cls-2, .cls-4 {
+        fill-rule: evenodd;
+      }
+
+      .cls-2 {
+        stroke-dasharray: 10 10;
+      }
+
+      .cls-3 {
+        stroke-width: 20px;
+      }
+    </style>
+  </defs>
+  <path id="Film" class="cls-1" d="M8,10H248V146H8V10Z"/>
+  <path id="Sprocket_Hole" data-name="Sprocket Hole" class="cls-2" d="M8,134V22H248V134H8Z"/>
+  <g id="SCISSER">
+    <circle id="Ellipse_2_SVG" data-name="Ellipse 2 SVG" class="cls-3" cx="202.672" cy="193.609" r="23.359"/>
+    <circle id="Ellipse_4_SVG" data-name="Ellipse 4 SVG" class="cls-3" cx="55.656" cy="196.609" r="23.906"/>
+    <path id="Line_5" data-name="Line 5" class="cls-4" d="M84.364,214.167l-13.74-10.388,48.889-64.891,13.741,10.388Z"/>
+    <path class="cls-4" d="M198.222,210.509L48.191,56s-8.7,16.17-3.572,25.153S183.934,221.288,183.934,221.288Z"/>
+  </g>
+</svg>
